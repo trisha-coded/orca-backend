@@ -1,0 +1,58 @@
+version: "3.8"
+
+services:
+  # FastAPI Application Service
+  orca-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: orca-backend-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PROJECT_NAME=ORCA Marine Intelligence Backend
+      - VERSION=1.0.0
+      - HOST=0.0.0.0
+      - PORT=8000
+      - REDIS_URL=redis://redis:6379/0
+      - CACHE_ENABLED=True
+      - CACHE_TTL_SECONDS=900
+      - RATE_LIMIT_PER_MINUTE=60
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - orca-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Redis 7 Spatial Cache & Session Memory
+  redis:
+    image: redis:7-alpine
+    container_name: orca-redis-cache
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - orca-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+networks:
+  orca-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+    driver: local

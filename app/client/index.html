@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORCA Marine Intelligence | Conversational AI & Decision Platform</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        #map { min-height: 520px; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-slate-900/90 backdrop-blur border-b border-slate-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                    <i data-lucide="compass" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg text-white flex items-center gap-2">
+                        ORCA Marine Intelligence Platform
+                        <span class="text-xs bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2 py-0.5 rounded-full font-mono">Conversational AI • LangGraph</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Autonomous Marine Meteorology, PFZ Modeling, Safe Routing, Tides & Geofencing</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div id="system-status-badge" class="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs px-3 py-1.5 rounded-lg">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>Backend Operational</span>
+                </div>
+                <a href="/docs" target="_blank" class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-700 transition">
+                    <i data-lucide="file-code" class="w-4 h-4"></i>
+                    Swagger UI (/docs)
+                </a>
+                <a href="/redoc" target="_blank" class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-700 transition">
+                    <i data-lucide="book-open" class="w-4 h-4"></i>
+                    ReDoc
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left Column: Conversational AI Input, Location Resolver & Controls (5 Cols) -->
+        <div class="lg:col-span-5 space-y-5">
+
+            <!-- Presets Bar -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
+                <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2.5 flex items-center justify-between">
+                    <span>📍 Coastal City & Scenario Presets:</span>
+                    <span class="text-[10px] text-cyan-400 font-mono">Auto-Geocoded</span>
+                </label>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <button onclick="setPreset('Mangalore', 'Is it safe to fish for Indian Mackerel near Mangalore tomorrow morning?', 'Indian Mackerel', 'tomorrow morning', 'en')" class="p-2 bg-slate-800/80 hover:bg-cyan-950 hover:border-cyan-500/40 border border-slate-700 rounded-lg text-left transition">
+                        <div class="font-medium text-slate-200">Mangalore (Canara)</div>
+                        <div class="text-[11px] text-emerald-400">🌊 Temporal • Mackerel</div>
+                    </button>
+                    <button onclick="setPreset('Cochin', 'Can I go fishing for Yellowfin Tuna today off Cochin?', 'Yellowfin Tuna', 'today', 'en')" class="p-2 bg-slate-800/80 hover:bg-cyan-950 hover:border-cyan-500/40 border border-slate-700 rounded-lg text-left transition">
+                        <div class="font-medium text-slate-200">Cochin (Malabar)</div>
+                        <div class="text-[11px] text-cyan-400">✅ Tuna Spot • Safe</div>
+                    </button>
+                    <button onclick="setPreset('Rameswaram', 'Are we close to the Sri Lanka maritime border line?', 'Seer Fish', 'today', 'ta')" class="p-2 bg-slate-800/80 hover:bg-amber-950 hover:border-amber-500/40 border border-slate-700 rounded-lg text-left transition">
+                        <div class="font-medium text-slate-200">Rameswaram / Palk Strait</div>
+                        <div class="text-[11px] text-amber-400">⚠️ IMBL Buffer Alert</div>
+                    </button>
+                    <button onclick="setPreset('Veraval', 'What are wave, tide, and pomfret conditions off Veraval?', 'Pomfret', 'next 2 days', 'hi')" class="p-2 bg-slate-800/80 hover:bg-purple-950 hover:border-purple-500/40 border border-slate-700 rounded-lg text-left transition">
+                        <div class="font-medium text-slate-200">Veraval (Gujarat)</div>
+                        <div class="text-[11px] text-purple-400">📊 Tides & Wave Forecast</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Conversational NLU Query Form -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-semibold text-sm text-slate-200 flex items-center gap-2">
+                        <i data-lucide="message-square-code" class="w-4 h-4 text-cyan-400"></i>
+                        Conversational Natural Language Query
+                    </h2>
+                    <span class="text-[10px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2 py-0.5 rounded">NLU + Geocoder</span>
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Enter your question or voice query:</label>
+                    <textarea id="query-input" rows="3" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 resize-none font-sans leading-relaxed">Is it safe to fish near Mangalore tomorrow morning for mackerel?</textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Target Coastal Location</label>
+                        <input id="location-input" type="text" placeholder="e.g. Mangalore, Cochin, Vizag..." value="Mangalore" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500" />
+                    </div>
+
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Temporal Window</label>
+                        <select id="temporal-input" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+                            <option value="today">Today</option>
+                            <option value="tomorrow morning" selected>Tomorrow Morning</option>
+                            <option value="tomorrow afternoon">Tomorrow Afternoon</option>
+                            <option value="next 2 days">Next 2 Days</option>
+                            <option value="next 3 days">Next 3 Days</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Target Species</label>
+                        <select id="species-input" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+                            <option value="Indian Mackerel">Mackerel</option>
+                            <option value="Yellowfin Tuna">Yellowfin Tuna</option>
+                            <option value="Skipjack Tuna">Skipjack Tuna</option>
+                            <option value="Indian Oil Sardine">Oil Sardine</option>
+                            <option value="Seer Fish">Seer Fish</option>
+                            <option value="Pomfret">Pomfret</option>
+                            <option value="Tiger Prawn">Tiger Prawn</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Vessel Category</label>
+                        <select id="vessel-input" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+                            <option value="Motorized Boat">Motorized Boat</option>
+                            <option value="Traditional Canoe">Traditional Canoe</option>
+                            <option value="Mechanized Trawler">Mechanized Trawler</option>
+                            <option value="Deep Sea Vessel">Deep Sea Vessel</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Language</label>
+                        <select id="lang-input" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+                            <option value="en">English (en)</option>
+                            <option value="ta">தமிழ் (Tamil)</option>
+                            <option value="ml">മലയാളം (Malayalam)</option>
+                            <option value="hi">हिन्दी (Hindi)</option>
+                            <option value="te">తెలుగు (Telugu)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-1">
+                    <button id="run-btn" onclick="runConversationalEngine()" class="flex-1 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold py-2.5 px-4 rounded-xl shadow-lg shadow-cyan-600/30 flex items-center justify-center gap-2 text-sm transition">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                        Run Multi-Agent Reasoning
+                    </button>
+                    <button onclick="resolveLocationOnly()" title="Test Coastal Geocoder" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2.5 rounded-xl border border-slate-700 text-xs flex items-center gap-1 transition">
+                        <i data-lucide="map-pin" class="w-4 h-4 text-cyan-400"></i> Geocode
+                    </button>
+                </div>
+            </div>
+
+            <!-- Multi-Agent Reasoning Trace Timeline -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="font-semibold text-sm text-slate-200 flex items-center gap-2">
+                        <i data-lucide="cpu" class="w-4 h-4 text-cyan-400"></i>
+                        Multi-Agent Reasoning Trace (LangGraph)
+                    </h2>
+                    <span id="pipeline-latency" class="text-xs font-mono text-cyan-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">0.00 ms</span>
+                </div>
+
+                <div id="agent-timeline" class="space-y-2.5 max-h-64 overflow-y-auto custom-scrollbar pr-1 text-xs">
+                    <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-500 text-center italic">
+                        Awaiting query execution. Click "Run Multi-Agent Reasoning" to view the live graph execution steps.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Interactive Map, Decision Cards, Route & Tides (7 Cols) -->
+        <div class="lg:col-span-7 space-y-5">
+
+            <!-- Cyclone / Severe Weather Warning Banner (Conditional) -->
+            <div id="cyclone-alert-banner" class="hidden bg-rose-950/80 border border-rose-500/50 rounded-2xl p-4 shadow-xl text-rose-200">
+                <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-rose-600/30 flex items-center justify-center shrink-0">
+                        <i data-lucide="alert-triangle" class="w-5 h-5 text-rose-400"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-sm text-rose-300" id="cyclone-alert-title">SEVERE WEATHER ALERT</div>
+                        <div class="text-xs text-rose-200/90 mt-0.5" id="cyclone-alert-body">MANDATORY EVACUATION: Extreme storm depression detected.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Decision Banner -->
+            <div id="decision-banner" class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div id="decision-icon-container" class="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-lg border border-emerald-500/30">
+                        GO
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-400" id="location-resolved-label">Location: Mangalore Coastal Waters (12.91° N, 74.85° E)</div>
+                        <div id="decision-title" class="font-bold text-base text-slate-100">Decision: GO (Favorable Sea Conditions)</div>
+                    </div>
+                </div>
+
+                <div class="text-right">
+                    <div class="text-xs text-slate-400">Safety Score</div>
+                    <div id="safety-score-value" class="text-2xl font-black text-emerald-400 font-mono">100<span class="text-xs font-normal text-slate-500">/100</span></div>
+                </div>
+            </div>
+
+            <!-- Interactive Leaflet Map with Route & Waypoints -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-semibold text-sm text-slate-200 flex items-center gap-2">
+                        <i data-lucide="map" class="w-4 h-4 text-cyan-400"></i>
+                        Nautical Map with Safest Route Track & Waypoints
+                    </h3>
+                    <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-cyan-400 inline-block"></span> Vessel</span>
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block"></span> PFZ Spot</span>
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-blue-400 inline-block"></span> Safe Route</span>
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> MPA Zone</span>
+                    </div>
+                </div>
+                <div id="map" class="w-full rounded-xl overflow-hidden border border-slate-800"></div>
+            </div>
+
+            <!-- Enhanced SIH Metrics Grid (Route, Departure Window, Tides, Weather) -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <!-- Departure Window -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-lg">
+                    <div class="text-slate-400 flex items-center gap-1 mb-1">
+                        <i data-lucide="clock" class="w-3.5 h-3.5 text-cyan-400"></i> Best Sailing Window
+                    </div>
+                    <div id="metric-window" class="font-bold text-slate-200">05:30 AM - 10:30 AM</div>
+                    <div id="metric-window-detail" class="text-[11px] text-cyan-400 mt-0.5">Waves ~0.8m, Wind ~10 kts</div>
+                </div>
+
+                <!-- Safest Route Track -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-lg">
+                    <div class="text-slate-400 flex items-center gap-1 mb-1">
+                        <i data-lucide="navigation" class="w-3.5 h-3.5 text-blue-400"></i> Safest Route Heading
+                    </div>
+                    <div id="metric-route-heading" class="font-bold text-slate-200">Heading: 248° (12 NM)</div>
+                    <div id="metric-route-eta" class="text-[11px] text-blue-400 mt-0.5">Speed: 8.5 kts (ETA: 1.4h)</div>
+                </div>
+
+                <!-- Tides -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-lg">
+                    <div class="text-slate-400 flex items-center gap-1 mb-1">
+                        <i data-lucide="waves" class="w-3.5 h-3.5 text-purple-400"></i> Astronomical Tide
+                    </div>
+                    <div id="metric-tide-state" class="font-bold text-slate-200">FLOODING (1.2m)</div>
+                    <div id="metric-tide-next" class="text-[11px] text-purple-400 mt-0.5">Next High: in 2.1h</div>
+                </div>
+
+                <!-- PFZ Biological Potential -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-lg">
+                    <div class="text-slate-400 flex items-center gap-1 mb-1">
+                        <i data-lucide="fish" class="w-3.5 h-3.5 text-emerald-400"></i> PFZ Biological Index
+                    </div>
+                    <div id="metric-pfz-index" class="font-bold text-slate-200">HIGH Potential (85/100)</div>
+                    <div id="metric-pfz-detail" class="text-[11px] text-emerald-400 mt-0.5">SST 28.5°C • Chl 0.65mg/m³</div>
+                </div>
+            </div>
+
+            <!-- Synthesized Advisory Text & VHF Audio Script Box -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-semibold text-sm text-slate-200 flex items-center gap-2">
+                        <i data-lucide="radio" class="w-4 h-4 text-cyan-400"></i>
+                        Synthesized Advisory & VHF Broadcast Script
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <button onclick="simulateAudioSpeech()" class="flex items-center gap-1 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 border border-cyan-500/30 px-2.5 py-1 rounded-lg text-xs transition">
+                            <i data-lucide="volume-2" class="w-3.5 h-3.5"></i> Read Aloud
+                        </button>
+                        <span id="cache-hit-badge" class="text-[11px] font-mono text-slate-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">Cache: Miss</span>
+                    </div>
+                </div>
+                <pre id="advisory-output" class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs font-mono text-cyan-200/90 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto custom-scrollbar">Awaiting advisory execution...</pre>
+            </div>
+
+            <!-- Explainability Chain Accordion -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
+                <details class="group text-xs">
+                    <summary class="font-semibold text-slate-300 flex items-center justify-between cursor-pointer list-none select-none">
+                        <span class="flex items-center gap-2">
+                            <i data-lucide="help-circle" class="w-4 h-4 text-cyan-400"></i>
+                            Explainability Evidence Chain ("Why this recommendation?")
+                        </span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 group-open:rotate-180 transition-transform"></i>
+                    </summary>
+                    <div class="pt-3 space-y-2 text-slate-300 border-t border-slate-800 mt-3" id="explainability-content">
+                        <div><b>• Meteorological Safety:</b> Wave heights (<1.2m) and wind speeds (<12 kts) are well within safe vessel tolerances.</div>
+                        <div><b>• Hotspot Selection:</b> Copernicus thermal gradient and chlorophyll upwelling zone identify optimal pelagic feeding front.</div>
+                        <div><b>• Navigational Route:</b> Rhumb-line track maintains safe clearance from restricted Marine Protected Areas and international boundary buffers.</div>
+                    </div>
+                </details>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900/60 border-t border-slate-800 py-3 text-center text-xs text-slate-500">
+        ORCA Marine Intelligence Platform • Conversational Agentic AI Engine (LangGraph + FastAPI + Leaflet)
+    </footer>
+
+    <!-- Client Script -->
+    <script>
+        lucide.createIcons();
+
+        // Initialize Leaflet Map
+        const map = L.map('map').setView([12.9141, 74.8560], 8);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            maxZoom: 18
+        }).addTo(map);
+
+        let geojsonLayerGroup = L.layerGroup().addTo(map);
+
+        function setPreset(locationName, query, species, temporal, lang) {
+            document.getElementById('location-input').value = locationName;
+            document.getElementById('query-input').value = query;
+            document.getElementById('species-input').value = species;
+            document.getElementById('temporal-input').value = temporal;
+            document.getElementById('lang-input').value = lang;
+            runConversationalEngine();
+        }
+
+        async function resolveLocationOnly() {
+            const locName = document.getElementById('location-input').value;
+            if (!locName) return;
+            try {
+                const res = await fetch(`/api/v1/geocoding/resolve?location_name=${encodeURIComponent(locName)}`);
+                const data = await res.json();
+                alert(`Geocoded '${locName}':\n\n• Resolved: ${data.resolved_name} (${data.state})\n• Coordinates: ${data.latitude}° N, ${data.longitude}° E\n• Method: ${data.matched_by}`);
+            } catch (err) {
+                alert('Geocoding error: ' + err.message);
+            }
+        }
+
+        async function runConversationalEngine() {
+            const btn = document.getElementById('run-btn');
+            btn.disabled = true;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Reasoning in progress...`;
+            lucide.createIcons();
+
+            const payload = {
+                location_name: document.getElementById('location-input').value,
+                query: document.getElementById('query-input').value,
+                target_species: document.getElementById('species-input').value,
+                temporal_target: document.getElementById('temporal-input').value,
+                vessel_type: document.getElementById('vessel-input').value,
+                language: document.getElementById('lang-input').value
+            };
+
+            try {
+                const res = await fetch('/api/v1/advisory', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.message || 'Workflow execution error');
+                }
+
+                const data = await res.json();
+                renderAdvisoryResult(data);
+            } catch (err) {
+                alert('Error running advisory: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4"></i> Run Multi-Agent Reasoning`;
+                lucide.createIcons();
+            }
+        }
+
+        function simulateAudioSpeech() {
+            const text = document.getElementById('advisory-output').innerText;
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 1.0;
+                window.speechSynthesis.speak(utterance);
+            } else {
+                alert('Text-to-speech not supported in this browser.');
+            }
+        }
+
+        function renderAdvisoryResult(data) {
+            // Update Location Label
+            const loc = data.location;
+            document.getElementById('location-resolved-label').innerText = `Location: ${loc.location_name || 'Indian Waters'} (${loc.latitude}° N, ${loc.longitude}° E) • ${loc.coastal_region || ''}`;
+
+            // Cyclone Alert Banner
+            const cycloneBanner = document.getElementById('cyclone-alert-banner');
+            if (data.cyclone_alert && data.cyclone_alert.is_cyclone_alert) {
+                cycloneBanner.classList.remove('hidden');
+                document.getElementById('cyclone-alert-title').innerText = `🚨 ${data.cyclone_alert.alert_severity} CYCLONIC DEPRESSION ALERT`;
+                document.getElementById('cyclone-alert-body').innerText = data.cyclone_alert.directive;
+            } else {
+                cycloneBanner.classList.add('hidden');
+            }
+
+            // Update Decision Banner
+            const decision = data.safety_assessment.go_no_go_decision;
+            const score = data.safety_assessment.safety_score;
+            const banner = document.getElementById('decision-banner');
+            const iconCont = document.getElementById('decision-icon-container');
+            const decisionTitle = document.getElementById('decision-title');
+            const scoreVal = document.getElementById('safety-score-value');
+
+            scoreVal.innerHTML = `${score}<span class="text-xs font-normal text-slate-500">/100</span>`;
+
+            if (decision === 'NO_GO') {
+                iconCont.className = 'w-12 h-12 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold text-lg border border-rose-500/30';
+                iconCont.innerText = 'NO GO';
+                decisionTitle.innerText = `Decision: NO_GO (${data.safety_assessment.overall_safety_status})`;
+                scoreVal.className = 'text-2xl font-black text-rose-400 font-mono';
+            } else if (decision === 'GO_WITH_CAUTION') {
+                iconCont.className = 'w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs text-center border border-amber-500/30';
+                iconCont.innerText = 'CAUTION';
+                decisionTitle.innerText = `Decision: GO WITH CAUTION`;
+                scoreVal.className = 'text-2xl font-black text-amber-400 font-mono';
+            } else {
+                iconCont.className = 'w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-lg border border-emerald-500/30';
+                iconCont.innerText = 'GO';
+                decisionTitle.innerText = `Decision: GO (Favorable Sea Conditions)`;
+                scoreVal.className = 'text-2xl font-black text-emerald-400 font-mono';
+            }
+
+            // Advisory Text
+            document.getElementById('advisory-output').innerText = data.advisory_text;
+
+            // Cache & Latency
+            document.getElementById('pipeline-latency').innerText = `${data.execution_time_ms} ms`;
+            document.getElementById('cache-hit-badge').innerText = data.cached ? '⚡ Cache: HIT' : '🔄 Cache: MISS';
+            document.getElementById('cache-hit-badge').className = data.cached
+                ? 'text-[11px] font-mono text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800'
+                : 'text-[11px] font-mono text-slate-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800';
+
+            // Departure Window
+            if (data.departure_window) {
+                document.getElementById('metric-window').innerText = data.departure_window.recommended_window;
+                document.getElementById('metric-window-detail').innerText = `Waves ~${data.departure_window.avg_wave_m}m, Wind ~${data.departure_window.avg_wind_kts} kts`;
+            }
+
+            // Route Metric
+            if (data.route_plan) {
+                document.getElementById('metric-route-heading').innerText = `Heading: ${data.route_plan.initial_bearing_deg}° (${data.route_plan.total_distance_nm} NM)`;
+                document.getElementById('metric-route-eta').innerText = `Speed: ${data.route_plan.recommended_cruising_speed_knots} kts (ETA: ${data.route_plan.estimated_transit_time_hours}h)`;
+            }
+
+            // Tides Metric
+            if (data.tides_report) {
+                document.getElementById('metric-tide-state').innerText = `${data.tides_report.tidal_state} (${data.tides_report.current_height_m}m)`;
+                document.getElementById('metric-tide-next').innerText = `${data.tides_report.regime}`;
+            }
+
+            // PFZ Metric
+            if (data.ocean_report) {
+                document.getElementById('metric-pfz-index').innerText = `${data.ocean_report.pfz_rating} (${data.ocean_report.pfz_potential_score}/100)`;
+                document.getElementById('metric-pfz-detail').innerText = `SST ${data.ocean_report.sea_surface_temperature_c}°C • Chl ${data.ocean_report.chlorophyll_a_mg_m3} mg/m³`;
+            }
+
+            // Explainability Chain
+            if (data.explainability) {
+                const exp = data.explainability;
+                document.getElementById('explainability-content').innerHTML = `
+                    <div><b>• Meteorological Safety:</b> ${exp.why_safe_or_unsafe}</div>
+                    <div><b>• Hotspot Selection:</b> ${exp.why_this_hotspot}</div>
+                    <div><b>• Navigational Route:</b> ${exp.why_this_route}</div>
+                    <div class="text-cyan-400"><b>• Confidence Score:</b> ${exp.confidence_score}%</div>
+                `;
+            }
+
+            // Agent Reasoning Timeline
+            const timeline = document.getElementById('agent-timeline');
+            timeline.innerHTML = '';
+            data.reasoning_logs.forEach(log => {
+                const item = document.createElement('div');
+                const isWarn = log.status === 'WARNING';
+                const isErr = log.status === 'ERROR';
+                const statusColor = isErr ? 'text-rose-400 border-rose-500/30 bg-rose-950/20' : (isWarn ? 'text-amber-400 border-amber-500/30 bg-amber-950/20' : 'text-cyan-400 border-cyan-500/30 bg-cyan-950/20');
+
+                item.className = `p-3 rounded-xl border ${statusColor} text-slate-300`;
+                item.innerHTML = `
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="font-bold font-mono ${statusColor}">${log.agent_name}</span>
+                        <span class="text-[10px] text-slate-500 font-mono">${log.latency_ms} ms</span>
+                    </div>
+                    <p class="text-slate-300 text-[11px] leading-relaxed">${log.summary}</p>
+                `;
+                timeline.appendChild(item);
+            });
+
+            // Render Map GeoJSON
+            geojsonLayerGroup.clearLayers();
+            const vesselLat = data.location.latitude;
+            const vesselLon = data.location.longitude;
+
+            map.setView([vesselLat, vesselLon], 8);
+
+            // Vessel Marker with pulsating radar halo
+            const vesselIcon = L.divIcon({
+                className: 'custom-vessel-icon',
+                html: `<div style="background: #38bdf8; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 14px #38bdf8;"></div>`,
+                iconSize: [16, 16]
+            });
+            L.marker([vesselLat, vesselLon], { icon: vesselIcon })
+                .bindPopup(`<b>Vessel Position: ${data.location.location_name || 'Port'}</b><br>Lat: ${vesselLat}, Lon: ${vesselLon}<br>Region: ${data.location.coastal_region}`)
+                .addTo(geojsonLayerGroup)
+                .openPopup();
+
+            // Render GeoJSON Features (Route LineString, Waypoints, PFZ Hotspots, EEZ Borders, MPAs)
+            if (data.geojson && data.geojson.features) {
+                L.geoJSON(data.geojson, {
+                    style: function (feature) {
+                        const layer = feature.properties.layer;
+                        const zoneType = feature.properties.zone_type;
+                        if (layer === 'safe_navigation_route') {
+                            return { color: '#38bdf8', weight: 3.5, dashArray: '6, 6', opacity: 0.9 };
+                        } else if (zoneType === 'MPA') {
+                            return { color: '#f43f5e', weight: 2, fillOpacity: 0.25 };
+                        } else if (zoneType === 'NEIGHBOR_EEZ') {
+                            return { color: '#f59e0b', weight: 1.5, dashArray: '4, 4' };
+                        }
+                        return { color: '#06b6d4', weight: 1.5 };
+                    },
+                    pointToLayer: function (feature, latlng) {
+                        const layer = feature.properties.layer;
+                        if (layer === 'pfz_hotspot') {
+                            return L.circleMarker(latlng, {
+                                radius: 8,
+                                fillColor: '#10b981',
+                                color: '#ffffff',
+                                weight: 2,
+                                opacity: 1,
+                                fillOpacity: 0.85
+                            }).bindPopup(`<b>${feature.properties.title}</b><br>SST: ${feature.properties.sst_c}°C<br>Chlorophyll: ${feature.properties.chlorophyll_mg_m3} mg/m³<br>Type: ${feature.properties.zone_type}`);
+                        } else if (layer === 'navigation_waypoint') {
+                            return L.circleMarker(latlng, {
+                                radius: 5,
+                                fillColor: '#38bdf8',
+                                color: '#ffffff',
+                                weight: 1.5,
+                                fillOpacity: 0.9
+                            }).bindPopup(`<b>${feature.properties.title}</b><br>Bearing: ${feature.properties.bearing_deg}°<br>${feature.properties.instruction}`);
+                        }
+                        return L.circleMarker(latlng, { radius: 4, fillColor: '#38bdf8' });
+                    }
+                }).addTo(geojsonLayerGroup);
+            }
+        }
+
+        // Run initial Mangalore query on load
+        window.addEventListener('DOMContentLoaded', () => {
+            runConversationalEngine();
+        });
+    </script>
+</body>
+</html>

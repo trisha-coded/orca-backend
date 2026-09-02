@@ -1,0 +1,182 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Indian Exclusive Economic Zone (Mainland & Islands)",
+        "zone_type": "EEZ",
+        "country": "India",
+        "sovereignty": "IN",
+        "fishing_allowed": true
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [68.12, 23.67],
+            [65.00, 20.00],
+            [66.50, 15.00],
+            [70.00, 10.00],
+            [74.00, 6.00],
+            [77.50, 5.00],
+            [80.00, 6.00],
+            [84.00, 10.00],
+            [88.00, 15.00],
+            [90.00, 20.00],
+            [89.15, 21.50],
+            [87.00, 21.50],
+            [83.00, 17.50],
+            [80.30, 13.10],
+            [79.85, 9.50],
+            [77.55, 8.08],
+            [76.26, 9.93],
+            [74.85, 12.87],
+            [73.80, 15.40],
+            [72.82, 18.95],
+            [69.50, 22.45],
+            [68.12, 23.67]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sri Lanka Maritime Boundary (IMBL)",
+        "zone_type": "NEIGHBOR_EEZ",
+        "country": "Sri Lanka",
+        "sovereignty": "LK",
+        "fishing_allowed": false,
+        "warning": "International Maritime Boundary Line (IMBL) - Indian fishermen strictly prohibited from crossing."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [79.50, 10.50],
+            [82.50, 10.50],
+            [82.50, 5.50],
+            [79.50, 5.50],
+            [79.50, 10.50]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Maldives EEZ",
+        "zone_type": "NEIGHBOR_EEZ",
+        "country": "Maldives",
+        "sovereignty": "MV",
+        "fishing_allowed": false,
+        "warning": "Maldivian Exclusive Economic Zone - Entry prohibited without license."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [72.00, 7.50],
+            [74.00, 7.50],
+            [74.00, -1.00],
+            [72.00, -1.00],
+            [72.00, 7.50]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Pakistan Maritime Boundary Line",
+        "zone_type": "NEIGHBOR_EEZ",
+        "country": "Pakistan",
+        "sovereignty": "PK",
+        "fishing_allowed": false,
+        "warning": "Sir Creek / Pakistan Maritime Boundary - High Risk Military Patrol Area."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [60.00, 25.00],
+            [68.10, 23.70],
+            [65.00, 21.00],
+            [60.00, 21.00],
+            [60.00, 25.00]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Gulf of Mannar Marine National Park",
+        "zone_type": "MPA",
+        "country": "India",
+        "fishing_allowed": false,
+        "restriction_level": "STRICT_NO_TAKE",
+        "warning": "Core Marine Protected Area: Commercial trawling and mechanized fishing strictly banned."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [78.75, 9.20],
+            [79.30, 9.30],
+            [79.25, 8.80],
+            [78.70, 8.80],
+            [78.75, 9.20]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Gahirmatha Marine Sanctuary",
+        "zone_type": "MPA",
+        "country": "India",
+        "fishing_allowed": false,
+        "restriction_level": "SEASONAL_NO_FISHING",
+        "warning": "Olive Ridley Turtle nesting zone: Mechanized fishing banned within 20km of coast."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [86.75, 20.80],
+            [87.20, 20.80],
+            [87.10, 20.40],
+            [86.70, 20.40],
+            [86.75, 20.80]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Marine National Park (Gulf of Kutch)",
+        "zone_type": "MPA",
+        "country": "India",
+        "fishing_allowed": false,
+        "restriction_level": "STRICT_NO_TAKE",
+        "warning": "Coral Reef & Mangrove conservation zone: Mechanized fishing strictly prohibited."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [69.00, 22.60],
+            [70.30, 22.80],
+            [70.30, 22.30],
+            [69.00, 22.20],
+            [69.00, 22.60]
+          ]
+        ]
+      }
+    }
+  ]
+}
