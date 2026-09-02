@@ -10,6 +10,8 @@ from app.config import settings
 from app.schemas import (
     MarineQueryRequest,
     MarineAdvisoryResponse,
+    ConversationalChatRequest,
+    ConversationalChatResponse,
     GeofenceAssessment,
     WeatherAssessment,
     OceanAssessment,
@@ -112,7 +114,7 @@ async def generate_marine_advisory(payload: MarineQueryRequest):
     initial_state: MarineAgentState = {
         "request_id": req_id,
         "query": payload.query,
-        "coordinates": payload.coordinates.model_dump(),
+        "coordinates": payload.coordinates.model_dump() if payload.coordinates else {},
         "vessel_context": payload.vessel_context.model_dump() if payload.vessel_context else {},
         "language": payload.language.value,
         "target_species": payload.target_species,
@@ -146,12 +148,57 @@ async def generate_marine_advisory(payload: MarineQueryRequest):
             geofence=GeofenceAssessment(**geofence_dict),
             spatial_features=GeoJSONFeatureCollection(**spatial_dict),
             audit_trail=[AuditLogEntry(**entry) for entry in final_state.get("audit_trail", [])],
+            nlu_metadata=final_state.get("nlu_metadata"),
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Pipeline processing failed: {str(e)}",
         )
+
+
+@app.post(
+    f"{settings.API_V1_PREFIX}/chat",
+    response_model=ConversationalChatResponse,
+    tags=["Conversational Interface"],
+    summary="Natural Language Conversational Chat Endpoint (no explicit coordinates required)",
+)
+async def conversational_chat_interface(payload: ConversationalChatRequest):
+    """
+    Conversational Chat Endpoint:
+    Allows user to pass natural language queries like 'Is it safe near Mangalore tomorrow?'
+    Extracted location is geocoded, time expressions are parsed, and full multi-agent advisory is executed.
+    """
+    user_coords = None
+    if payload.user_latitude is not None and payload.user_longitude is not None:
+        user_coords = {"latitude": payload.user_latitude, "longitude": payload.user_longitude}
+
+    advisory_req = MarineQueryRequest(
+        query=payload.message,
+        coordinates=user_coords,
+        language=payload.language or "en",
+    )
+
+    advisory_res = await generate_marine_advisory(advisory_req)
+    nlu_meta = advisory_res.nlu_metadata or {}
+    loc_meta = nlu_meta.get("location", {})
+    temp_meta = nlu_meta.get("temporal", {})
+
+    return ConversationalChatResponse(
+        session_id=payload.session_id or f"session-{uuid.uuid4().hex[:8]}",
+        user_query=payload.message,
+        response_text=advisory_res.advisory_body,
+        audio_script=advisory_res.audio_broadcast_script,
+        is_safe=advisory_res.safety_status.is_safe_to_sail,
+        location_resolved=loc_meta.get("location_name", "Resolved Location"),
+        coordinates_used={
+            "latitude": loc_meta.get("latitude", 9.9312),
+            "longitude": loc_meta.get("longitude", 76.2673),
+        },
+        time_window_resolved=temp_meta.get("time_description", "Real-time"),
+        intent_detected=nlu_meta.get("intent", "SAFETY_CHECK"),
+        advisory_details=advisory_res,
+    )
 
 
 @app.post(

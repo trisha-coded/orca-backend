@@ -7,3 +7,15 @@ redis>=5.0.0
 pytest>=8.0.0
 pytest-asyncio>=0.23.0
 python-dotenv>=1.0.0
+
+python-multipart>=0.0.6
+websockets>=11.0.3
+edge-tts>=6.1.9
+faster-whisper>=1.0.0
+transformers>=4.33.0
+torch>=2.0.0
+accelerate>=0.20.3
+sacremoses>=0.0.53
+groq>=0.4.0
+SpeechRecognition>=3.10.0
+deep-translator>=1.11.4

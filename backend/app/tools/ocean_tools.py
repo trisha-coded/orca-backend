@@ -7,11 +7,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 try:
     import marine_tools
-except ImportError:
-    root_path = str(Path(__file__).resolve().parent.parent.parent.parent)
-    if root_path not in sys.path:
-        sys.path.insert(0, root_path)
-    import marine_tools
+except (ImportError, Exception):
+    marine_tools = None
 
 
 # In-memory spatial cache to handle the 30-90s Copernicus download time efficiently
