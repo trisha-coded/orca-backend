@@ -133,8 +133,8 @@ class AuditLogEntry(BaseModel):
 
 
 class MarineQueryRequest(BaseModel):
-    query: str = Field(..., description="Natural language query from fisher/operator")
-    coordinates: Coordinates
+    query: str = Field(..., description="Natural language query from fisher/operator (e.g. 'Is it safe near Mangalore tomorrow?')")
+    coordinates: Optional[Coordinates] = Field(default=None, description="Explicit coordinates. If omitted, resolved automatically via NLU Geocoder.")
     vessel_context: Optional[VesselContext] = Field(default_factory=VesselContext)
     language: LanguageEnum = LanguageEnum.ENGLISH
     target_species: Optional[str] = None
@@ -156,3 +156,26 @@ class MarineAdvisoryResponse(BaseModel):
     geofence: GeofenceAssessment
     spatial_features: GeoJSONFeatureCollection
     audit_trail: List[AuditLogEntry] = Field(default_factory=list)
+    nlu_metadata: Optional[Dict[str, Any]] = Field(default=None, description="Parsed location, time window, and intent from NLU")
+
+
+class ConversationalChatRequest(BaseModel):
+    message: str = Field(..., description="Conversational query from user (e.g., 'Is it safe near Mangalore tomorrow morning?')")
+    language: Optional[LanguageEnum] = LanguageEnum.ENGLISH
+    session_id: Optional[str] = None
+    user_latitude: Optional[float] = None
+    user_longitude: Optional[float] = None
+
+
+class ConversationalChatResponse(BaseModel):
+    session_id: str
+    user_query: str
+    response_text: str
+    audio_script: str
+    is_safe: bool
+    location_resolved: str
+    coordinates_used: Dict[str, float]
+    time_window_resolved: str
+    intent_detected: str
+    advisory_details: MarineAdvisoryResponse
+

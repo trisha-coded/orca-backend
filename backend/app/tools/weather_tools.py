@@ -7,12 +7,8 @@ from app.config import settings
 # Import marine_tools from parent or current environment
 try:
     import marine_tools
-except ImportError:
-    # Add root project folder to sys.path if not present
-    root_path = str(Path(__file__).resolve().parent.parent.parent.parent)
-    if root_path not in sys.path:
-        sys.path.insert(0, root_path)
-    import marine_tools
+except (ImportError, Exception):
+    marine_tools = None
 
 
 def _sea_state_from_wave_height(wave_height_m: float) -> tuple[int, str]:

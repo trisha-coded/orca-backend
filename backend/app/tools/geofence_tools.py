@@ -8,11 +8,8 @@ from app.config import settings
 
 try:
     import marine_tools
-except ImportError:
-    root_path = str(Path(__file__).resolve().parent.parent.parent.parent)
-    if root_path not in sys.path:
-        sys.path.insert(0, root_path)
-    import marine_tools
+except (ImportError, Exception):
+    marine_tools = None
 
 
 # 1. Fallback Maritime Boundary Line Coordinates (Used for map line overlays)

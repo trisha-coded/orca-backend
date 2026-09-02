@@ -5,14 +5,30 @@ from datetime import datetime, timezone
 from app.state import MarineAgentState
 
 
+from app.nlu import parse_natural_query
+
+
 def supervisor_intent_parser(state: MarineAgentState) -> MarineAgentState:
     """
-    Supervisor Agent: Decomposes natural language queries, extracts entities,
-    and routes control flow to relevant domain agents.
+    Supervisor Agent: Decomposes natural language queries, extracts entities (location, time, species),
+    geocodes missing coordinates, and routes control flow to relevant domain agents.
     """
-    query = state.get("query", "").lower()
+    query = state.get("query", "")
     coords = state.get("coordinates", {})
     vessel = state.get("vessel_context", {})
+
+    # Run Natural Language Understanding (NLU) Pipeline
+    nlu_result = parse_natural_query(query, user_coords=coords if coords.get("latitude") and coords.get("longitude") else None)
+    
+    # Fill resolved coordinates if missing
+    resolved_lat = nlu_result["location"]["latitude"]
+    resolved_lon = nlu_result["location"]["longitude"]
+    resolved_coords = {
+        "latitude": coords.get("latitude") or resolved_lat,
+        "longitude": coords.get("longitude") or resolved_lon,
+    }
+
+    query_lower = query.lower()
 
     # Default all domain tools to True for comprehensive marine advisory unless strictly targeted
     requires_weather = True
@@ -76,6 +92,8 @@ def supervisor_intent_parser(state: MarineAgentState) -> MarineAgentState:
     return {
         **state,
         "request_id": state.get("request_id") or f"req-{uuid.uuid4().hex[:8]}",
+        "coordinates": resolved_coords,
+        "nlu_metadata": nlu_result,
         "parsed_intent": parsed_intent,
         "target_species": extracted_species,
         "requires_weather": requires_weather,
