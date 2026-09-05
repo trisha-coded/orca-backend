@@ -1,5 +1,5 @@
 """
-State definition for the ORCA multi-agent reasoning graph.
+State definition for the Oceanova multi-agent reasoning graph.
 Maintains state across Supervisor, Domain Agents, Route Planner, Tides, Safety Gate, and Synthesizer.
 """
 

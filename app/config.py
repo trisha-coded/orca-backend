@@ -1,5 +1,5 @@
 """
-Configuration and marine safety thresholds for the ORCA backend.
+Configuration and marine safety thresholds for the Oceanova backend.
 """
 
 from typing import List
@@ -13,7 +13,7 @@ except ImportError:
 
 class Settings(BaseSettings):
     # App Settings
-    PROJECT_NAME: str = "ORCA Marine Intelligence Backend"
+    PROJECT_NAME: str = "Oceanova Marine Intelligence Backend"
     API_V1_STR: str = "/api/v1"
     DEBUG: bool = False
     VERSION: str = "1.0.0"

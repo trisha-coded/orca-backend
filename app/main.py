@@ -1,17 +1,19 @@
 """
-Main FastAPI server for ORCA Marine Intelligence Platform.
+Main FastAPI server for Oceanova Marine Intelligence Platform.
 Entry point for Conversational Client, Frontend, Swagger UI (/docs), ReDoc (/redoc), and API consumers.
 """
 
 import time
 import os
+import asyncio
 from contextlib import asynccontextmanager
 from typing import Optional
 from datetime import datetime, timezone
-from fastapi import FastAPI, Depends, Request, status, HTTPException, Query
+from fastapi import FastAPI, Depends, Request, status, HTTPException, Query, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 from app.config import settings
 from app.schemas import (
@@ -39,6 +41,7 @@ from app.tools.ocean_tools import ocean_adapter
 from app.tools.tides import tide_engine
 from app.tools.routing import route_engine
 from app.tools.geocoding import geocoder
+from app.tools.speech import synthesize_speech, process_speech_audio
 
 # Service startup tracking
 _service_start_time = time.time()
@@ -49,18 +52,47 @@ async def lifespan(app: FastAPI):
     print(f"🚀 Initializing {settings.PROJECT_NAME} v{settings.VERSION}...")
     print(f"📡 API Documentation available at: http://{settings.HOST}:{settings.PORT}/docs")
     print(f"🗺️ Interactive Client available at: http://{settings.HOST}:{settings.PORT}/client")
+
+    async def _warmup_cache():
+        try:
+            from app.graph import orchestrator
+            from app.schemas import MarineAdvisoryRequest
+            warmup_ports = [
+                ("Mangalore", 12.9141, 74.8560),
+                ("Cochin", 9.9312, 76.2673),
+                ("Mumbai", 18.9220, 72.8347),
+                ("Goa", 15.4056, 73.8043),
+                ("Chennai", 13.0827, 80.2707),
+                ("Visakhapatnam", 17.6868, 83.2185),
+            ]
+            for port_name, lat, lon in warmup_ports:
+                try:
+                    req = MarineAdvisoryRequest(
+                        query=f"Is it safe to fish near {port_name}?",
+                        location_name=port_name,
+                        latitude=lat,
+                        longitude=lon,
+                        preferred_language="en"
+                    )
+                    await orchestrator.run(req)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    asyncio.create_task(_warmup_cache())
     yield
-    print("🛑 Shutting down ORCA Decision-Support Engine.")
+    print("🛑 Shutting down Oceanova Decision-Support Engine.")
 
 
 app = FastAPI(
-    title="🌊 ORCA Marine Intelligence Platform - API",
+    title="🌊 Oceanova Marine Intelligence Platform - API",
     version=settings.VERSION,
     lifespan=lifespan,
     description=r"""
 ### 🌊 Autonomous Multi-Agent Marine Intelligence & Conversational Platform
 
-The **ORCA Platform** provides real-time marine meteorology, Copernicus oceanographic biological productivity analysis, Potential Fishing Zone (PFZ) modeling, spatial maritime boundary / Marine Protected Area (MPA) geofencing, safest nautical route optimization, and harmonic tidal predictions for Indian coastal waters.
+The **Oceanova Platform** provides real-time marine meteorology, Copernicus oceanographic biological productivity analysis, Potential Fishing Zone (PFZ) modeling, spatial maritime boundary / Marine Protected Area (MPA) geofencing, safest nautical route optimization, and harmonic tidal predictions for Indian coastal waters.
 
 ---
 
@@ -165,12 +197,16 @@ async def add_process_time_header(request: Request, call_next):
 
 @app.get(
     "/",
-    response_model=SystemInfoResponse,
     tags=["System & Telemetry"],
-    summary="Service Discovery & Metadata",
-    description="Returns root platform metadata, documentation links, and operational status."
+    summary="Service Discovery & Oceanova Marine Intelligence Platform",
+    description="Returns root platform metadata for API consumers, or serves the interactive Oceanova frontend for web browsers."
 )
-async def root_info() -> SystemInfoResponse:
+async def root_info(request: Request):
+    accept = request.headers.get("accept", "")
+    client_html_path = os.path.join(os.path.dirname(__file__), "client", "index.html")
+    if "text/html" in accept and os.path.exists(client_html_path):
+        with open(client_html_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read(), status_code=200)
     return SystemInfoResponse(
         service=settings.PROJECT_NAME,
         version=settings.VERSION,
@@ -253,6 +289,38 @@ async def create_marine_advisory(request: MarineAdvisoryRequest) -> MarineAdviso
                 "timestamp": datetime.now(timezone.utc).isoformat()
             }
         )
+
+
+# ==========================================
+# Speech & VHF Audio Transmission Endpoints
+# ==========================================
+
+class SpeechTTSRequest(BaseModel):
+    text: str
+    language: Optional[str] = "en"
+
+
+@app.post(
+    f"{settings.API_V1_STR}/speech/tts",
+    tags=["Advisory & Conversational AI"],
+    summary="Synthesize Marine VHF Audio Broadcast (Neural Edge-TTS)",
+    description="Generates native Indian marine broadcast speech audio (MP3 base64) using Edge-TTS with regional voices."
+)
+async def speech_text_to_speech(payload: SpeechTTSRequest):
+    result = await synthesize_speech(text=payload.text, language=payload.language or "en")
+    return JSONResponse(content=result)
+
+
+@app.post(
+    f"{settings.API_V1_STR}/speech/stt",
+    tags=["Advisory & Conversational AI"],
+    summary="Process Microphone Audio File (STT)",
+    description="Accepts an audio file recorded by the client device microphone, transcribes it, and returns the query text."
+)
+async def speech_audio_to_text(file: UploadFile = File(...), language: Optional[str] = Query("auto")):
+    contents = await file.read()
+    result = await process_speech_audio(audio_bytes=contents, filename=file.filename or "speech.webm", language=language or "auto")
+    return JSONResponse(content=result)
 
 
 # ==========================================
@@ -422,25 +490,31 @@ async def clear_cache():
 
 
 # ==========================================
-# Interactive Client Frontend Dashboard
+# Interactive Client Frontend Dashboard & Static Assets
 # ==========================================
 
 client_html_path = os.path.join(os.path.dirname(__file__), "client", "index.html")
+assets_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets")
 
+if os.path.exists(assets_dir):
+    app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+@app.get("/oceanova", response_class=HTMLResponse, tags=["System & Telemetry"], summary="Oceanova Marine Intelligence Platform")
+@app.get("/marlin", response_class=HTMLResponse, tags=["System & Telemetry"], summary="Oceanova Marine Intelligence Platform (Alias)")
 @app.get("/client", response_class=HTMLResponse, tags=["System & Telemetry"], summary="Interactive Frontend Client")
 @app.get("/app", response_class=HTMLResponse, tags=["System & Telemetry"], summary="Interactive Frontend Client (Alias)")
 async def serve_client_dashboard():
-    """Serves the interactive Leaflet map & decision-support client dashboard."""
+    """Serves the interactive Oceanova marine intelligence client platform."""
     if os.path.exists(client_html_path):
         with open(client_html_path, "r", encoding="utf-8") as f:
             return HTMLResponse(content=f.read(), status_code=200)
     return HTMLResponse(
         content="""
         <html>
-            <head><title>ORCA Client</title></head>
-            <body style="font-family: sans-serif; padding: 2rem; background: #0f172a; color: white;">
-                <h1>🌊 ORCA Marine Intelligence Platform</h1>
-                <p>Interactive dashboard loading. Visit <a href="/docs" style="color: #38bdf8;">/docs</a> for Swagger UI.</p>
+            <head><title>Oceanova API</title></head>
+            <body style="font-family: sans-serif; padding: 2rem; background: #05070a; color: white;">
+                <h1>🌊 Project Oceanova</h1>
+                <p>Interactive platform initializing. Visit <a href="/docs" style="color: #38bdf8;">/docs</a> for Swagger UI.</p>
             </body>
         </html>
         """,

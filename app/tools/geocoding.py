@@ -15,6 +15,89 @@ except ImportError:
 
 # High-precision coordinates for Indian maritime coastal ports and landing centers
 INDIAN_COASTAL_LOCATIONS: Dict[str, Dict[str, Any]] = {
+    # Regional Indian Language Maritime Harbor Aliases (Kannada, Hindi, Tamil, Malayalam, Telugu)
+    "ಮಂಗಳೂರು": {"lat": 12.9141, "lon": 74.8560, "state": "Karnataka", "type": "Major Port & Old Harbor", "region": "Central Arabian Sea (Canara Coast)"},
+    "ಮಂಗಳೂರು ಬಂದರು": {"lat": 12.9141, "lon": 74.8560, "state": "Karnataka", "type": "Major Port", "region": "Central Arabian Sea (Canara Coast)"},
+    "ಮಂಗಳೂರಿನಲ್ಲಿ": {"lat": 12.9141, "lon": 74.8560, "state": "Karnataka", "type": "Major Port", "region": "Central Arabian Sea (Canara Coast)"},
+    "ಮಂಗಳೂರು ಬಳಿ": {"lat": 12.9141, "lon": 74.8560, "state": "Karnataka", "type": "Major Port", "region": "Central Arabian Sea (Canara Coast)"},
+    "ಮಾಲ್ಪೆ": {"lat": 13.3510, "lon": 74.7040, "state": "Karnataka", "type": "Fishing Harbor", "region": "Central Arabian Sea (Canara Coast)"},
+    "ಕಾರವಾರ": {"lat": 14.8150, "lon": 74.1300, "state": "Karnataka", "type": "Fishing Harbor", "region": "Central Arabian Sea (Canara Coast)"},
+    "ಕೊಚ್ಚಿನ್": {"lat": 9.9312, "lon": 76.2673, "state": "Kerala", "type": "Major Port", "region": "South Arabian Sea (Malabar Coast)"},
+    "ಕೊಚ್ಚಿ": {"lat": 9.9312, "lon": 76.2673, "state": "Kerala", "type": "Major Port", "region": "South Arabian Sea (Malabar Coast)"},
+    "ಗೋವಾ": {"lat": 15.4056, "lon": 73.8043, "state": "Goa", "type": "Major Port", "region": "Central Arabian Sea (Konkan Coast)"},
+    "ಮುಂಬೈ": {"lat": 18.9220, "lon": 72.8347, "state": "Maharashtra", "type": "Major Port", "region": "North Arabian Sea (Maharashtra Coast)"},
+    "ವೆರಾವಲ್": {"lat": 20.9000, "lon": 70.3667, "state": "Gujarat", "type": "Major Port", "region": "North Arabian Sea (Saurashtra Coast)"},
+    "ಪೋರಬಂದರ್": {"lat": 21.6417, "lon": 69.6293, "state": "Gujarat", "type": "Major Port", "region": "North Arabian Sea (Saurashtra Coast)"},
+    "ರಾಮೇಶ್ವರಂ": {"lat": 9.2876, "lon": 79.3129, "state": "Tamil Nadu", "type": "Fishing Harbor", "region": "Gulf of Mannar / Palk Strait"},
+    "ಚೆನ್ನೈ": {"lat": 13.0827, "lon": 80.2707, "state": "Tamil Nadu", "type": "Major Port", "region": "Central Bay of Bengal (Coromandel Coast)"},
+    "ಕನ್ಯಾಕುಮಾರಿ": {"lat": 8.0883, "lon": 77.5385, "state": "Tamil Nadu", "type": "Cape", "region": "Indian Ocean Cape"},
+    "ವಿಶಾಖಪಟ್ಟಣಂ": {"lat": 17.6868, "lon": 83.2185, "state": "Andhra Pradesh", "type": "Major Port", "region": "Central Bay of Bengal"},
+    "ಪಾರದೀಪ್": {"lat": 20.3167, "lon": 86.6167, "state": "Odisha", "type": "Major Port", "region": "North Bay of Bengal"},
+    "ಕೋಲ್ಕತ್ತಾ": {"lat": 22.0294, "lon": 88.0645, "state": "West Bengal", "type": "Major Port", "region": "North Bay of Bengal"},
+
+    # Hindi
+    "मैंगलोर": {"lat": 12.9141, "lon": 74.8560, "state": "Karnataka", "type": "Major Port & Old Harbor", "region": "Central Arabian Sea (Canara Coast)"},
+    "मंगलुरु": {"lat": 12.9141, "lon": 74.8560, "state": "Karnataka", "type": "Major Port", "region": "Central Arabian Sea (Canara Coast)"},
+    "मालपे": {"lat": 13.3510, "lon": 74.7040, "state": "Karnataka", "type": "Fishing Harbor", "region": "Central Arabian Sea (Canara Coast)"},
+    "कारवार": {"lat": 14.8150, "lon": 74.1300, "state": "Karnataka", "type": "Fishing Harbor", "region": "Central Arabian Sea (Canara Coast)"},
+    "कोचीन": {"lat": 9.9312, "lon": 76.2673, "state": "Kerala", "type": "Major Port", "region": "South Arabian Sea (Malabar Coast)"},
+    "कोच्चि": {"lat": 9.9312, "lon": 76.2673, "state": "Kerala", "type": "Major Port", "region": "South Arabian Sea (Malabar Coast)"},
+    "गोवा": {"lat": 15.4056, "lon": 73.8043, "state": "Goa", "type": "Major Port", "region": "Central Arabian Sea (Konkan Coast)"},
+    "मुंबई": {"lat": 18.9220, "lon": 72.8347, "state": "Maharashtra", "type": "Major Port", "region": "North Arabian Sea (Maharashtra Coast)"},
+    "वेरावल": {"lat": 20.9000, "lon": 70.3667, "state": "Gujarat", "type": "Major Port", "region": "North Arabian Sea (Saurashtra Coast)"},
+    "पोरबंदर": {"lat": 21.6417, "lon": 69.6293, "state": "Gujarat", "type": "Major Port", "region": "North Arabian Sea (Saurashtra Coast)"},
+    "रामेश्वरम": {"lat": 9.2876, "lon": 79.3129, "state": "Tamil Nadu", "type": "Fishing Harbor", "region": "Gulf of Mannar / Palk Strait"},
+    "चेन्नई": {"lat": 13.0827, "lon": 80.2707, "state": "Tamil Nadu", "type": "Major Port", "region": "Central Bay of Bengal"},
+    "कन्याकुमारी": {"lat": 8.0883, "lon": 77.5385, "state": "Tamil Nadu", "type": "Cape", "region": "Indian Ocean Cape"},
+    "विशाखापत्तनम": {"lat": 17.6868, "lon": 83.2185, "state": "Andhra Pradesh", "type": "Major Port", "region": "Central Bay of Bengal"},
+    "पारादीप": {"lat": 20.3167, "lon": 86.6167, "state": "Odisha", "type": "Major Port", "region": "North Bay of Bengal"},
+    "कोलकाता": {"lat": 22.0294, "lon": 88.0645, "state": "West Bengal", "type": "Major Port", "region": "North Bay of Bengal"},
+
+    # Tamil
+    "மங்களூர்": {"lat": 12.9141, "lon": 74.8560, "state": "Karnataka", "type": "Major Port", "region": "Central Arabian Sea (Canara Coast)"},
+    "மங்களூரு": {"lat": 12.9141, "lon": 74.8560, "state": "Karnataka", "type": "Major Port", "region": "Central Arabian Sea (Canara Coast)"},
+    "மால்பே": {"lat": 13.3510, "lon": 74.7040, "state": "Karnataka", "type": "Fishing Harbor", "region": "Central Arabian Sea (Canara Coast)"},
+    "கார்வார்": {"lat": 14.8150, "lon": 74.1300, "state": "Karnataka", "type": "Fishing Harbor", "region": "Central Arabian Sea (Canara Coast)"},
+    "கொச்சின்": {"lat": 9.9312, "lon": 76.2673, "state": "Kerala", "type": "Major Port", "region": "South Arabian Sea (Malabar Coast)"},
+    "கொச்சி": {"lat": 9.9312, "lon": 76.2673, "state": "Kerala", "type": "Major Port", "region": "South Arabian Sea (Malabar Coast)"},
+    "கோவா": {"lat": 15.4056, "lon": 73.8043, "state": "Goa", "type": "Major Port", "region": "Central Arabian Sea"},
+    "மும்பை": {"lat": 18.9220, "lon": 72.8347, "state": "Maharashtra", "type": "Major Port", "region": "North Arabian Sea"},
+    "வேராவல்": {"lat": 20.9000, "lon": 70.3667, "state": "Gujarat", "type": "Major Port", "region": "North Arabian Sea"},
+    "ராமேஸ்வரம்": {"lat": 9.2876, "lon": 79.3129, "state": "Tamil Nadu", "type": "Fishing Harbor", "region": "Gulf of Mannar / Palk Strait"},
+    "சென்னை": {"lat": 13.0827, "lon": 80.2707, "state": "Tamil Nadu", "type": "Major Port", "region": "Central Bay of Bengal"},
+    "கன்னியாகுமரி": {"lat": 8.0883, "lon": 77.5385, "state": "Tamil Nadu", "type": "Cape", "region": "Indian Ocean Cape"},
+    "விசாகப்பட்டினம்": {"lat": 17.6868, "lon": 83.2185, "state": "Andhra Pradesh", "type": "Major Port", "region": "Central Bay of Bengal"},
+
+    # Malayalam
+    "മംഗലാപുരം": {"lat": 12.9141, "lon": 74.8560, "state": "Karnataka", "type": "Major Port", "region": "Central Arabian Sea (Canara Coast)"},
+    "മാൽപെ": {"lat": 13.3510, "lon": 74.7040, "state": "Karnataka", "type": "Fishing Harbor", "region": "Central Arabian Sea (Canara Coast)"},
+    "കാർവാർ": {"lat": 14.8150, "lon": 74.1300, "state": "Karnataka", "type": "Fishing Harbor", "region": "Central Arabian Sea (Canara Coast)"},
+    "കൊച്ചിൻ": {"lat": 9.9312, "lon": 76.2673, "state": "Kerala", "type": "Major Port", "region": "South Arabian Sea (Malabar Coast)"},
+    "കൊച്ചി": {"lat": 9.9312, "lon": 76.2673, "state": "Kerala", "type": "Major Port", "region": "South Arabian Sea (Malabar Coast)"},
+    "ബേപ്പൂർ": {"lat": 11.1640, "lon": 75.8080, "state": "Kerala", "type": "Major Fishing Harbor", "region": "South Arabian Sea (Malabar Coast)"},
+    "കോഴിക്കോട്": {"lat": 11.2588, "lon": 75.7804, "state": "Kerala", "type": "Port Town", "region": "South Arabian Sea (Malabar Coast)"},
+    "ഗോവ": {"lat": 15.4056, "lon": 73.8043, "state": "Goa", "type": "Major Port", "region": "Central Arabian Sea"},
+    "മുംബൈ": {"lat": 18.9220, "lon": 72.8347, "state": "Maharashtra", "type": "Major Port", "region": "North Arabian Sea"},
+    "വേരാവൽ": {"lat": 20.9000, "lon": 70.3667, "state": "Gujarat", "type": "Major Port", "region": "North Arabian Sea"},
+    "രാമേശ്വരം": {"lat": 9.2876, "lon": 79.3129, "state": "Tamil Nadu", "type": "Fishing Harbor", "region": "Gulf of Mannar / Palk Strait"},
+    "ചെന്നൈ": {"lat": 13.0827, "lon": 80.2707, "state": "Tamil Nadu", "type": "Major Port", "region": "Central Bay of Bengal"},
+    "കന്യാകുമാരി": {"lat": 8.0883, "lon": 77.5385, "state": "Tamil Nadu", "type": "Cape", "region": "Indian Ocean Cape"},
+
+    # Telugu
+    "మంగళూరు": {"lat": 12.9141, "lon": 74.8560, "state": "Karnataka", "type": "Major Port", "region": "Central Arabian Sea"},
+    "మాల్పే": {"lat": 13.3510, "lon": 74.7040, "state": "Karnataka", "type": "Fishing Harbor", "region": "Central Arabian Sea"},
+    "కార్వార్": {"lat": 14.8150, "lon": 74.1300, "state": "Karnataka", "type": "Fishing Harbor", "region": "Central Arabian Sea"},
+    "కొచ్చిన్": {"lat": 9.9312, "lon": 76.2673, "state": "Kerala", "type": "Major Port", "region": "South Arabian Sea"},
+    "కొచ్చి": {"lat": 9.9312, "lon": 76.2673, "state": "Kerala", "type": "Major Port", "region": "South Arabian Sea"},
+    "గోవా": {"lat": 15.4056, "lon": 73.8043, "state": "Goa", "type": "Major Port", "region": "Central Arabian Sea"},
+    "ముంబై": {"lat": 18.9220, "lon": 72.8347, "state": "Maharashtra", "type": "Major Port", "region": "North Arabian Sea"},
+    "వెరావల్": {"lat": 20.9000, "lon": 70.3667, "state": "Gujarat", "type": "Major Port", "region": "North Arabian Sea"},
+    "రామేశ్వరం": {"lat": 9.2876, "lon": 79.3129, "state": "Tamil Nadu", "type": "Fishing Harbor", "region": "Gulf of Mannar / Palk Strait"},
+    "చెన్నై": {"lat": 13.0827, "lon": 80.2707, "state": "Tamil Nadu", "type": "Major Port", "region": "Central Bay of Bengal"},
+    "కన్యాకుమారి": {"lat": 8.0883, "lon": 77.5385, "state": "Tamil Nadu", "type": "Cape", "region": "Indian Ocean Cape"},
+    "విశాఖపట్నం": {"lat": 17.6868, "lon": 83.2185, "state": "Andhra Pradesh", "type": "Major Port", "region": "Central Bay of Bengal"},
+    "పారదీప్": {"lat": 20.3167, "lon": 86.6167, "state": "Odisha", "type": "Major Port", "region": "North Bay of Bengal"},
+    "కోల్‌కతా": {"lat": 22.0294, "lon": 88.0645, "state": "West Bengal", "type": "Major Port", "region": "North Bay of Bengal"},
     # Kerala
     "cochin": {"lat": 9.9312, "lon": 76.2673, "state": "Kerala", "type": "Major Port & Fishing Harbor", "region": "South Arabian Sea (Malabar Coast)"},
     "kochi": {"lat": 9.9312, "lon": 76.2673, "state": "Kerala", "type": "Major Port", "region": "South Arabian Sea (Malabar Coast)"},
@@ -41,12 +124,19 @@ INDIAN_COASTAL_LOCATIONS: Dict[str, Dict[str, Any]] = {
     "tadadi": {"lat": 14.5240, "lon": 74.3640, "state": "Karnataka", "type": "Fishing Harbor", "region": "Central Arabian Sea (Canara Coast)"},
     "karwar": {"lat": 14.8150, "lon": 74.1300, "state": "Karnataka", "type": "Baithkol Harbor & Naval Base", "region": "Central Arabian Sea (Canara Coast)"},
 
+    # Karnataka
+    "karnataka": {"lat": 12.9141, "lon": 74.8560, "state": "Karnataka", "type": "Coastal State", "region": "Central Arabian Sea (Canara Coast)"},
+
     # Goa
+    "goa": {"lat": 15.4056, "lon": 73.8043, "state": "Goa", "type": "Major Port & Coastal Sector", "region": "Central Arabian Sea (Konkan Coast)"},
     "panaji": {"lat": 15.4909, "lon": 73.8278, "state": "Goa", "type": "State Capital & Port", "region": "Central Arabian Sea (Konkan Coast)"},
     "mormugao": {"lat": 15.4167, "lon": 73.8000, "state": "Goa", "type": "Major Port", "region": "Central Arabian Sea (Konkan Coast)"},
     "vasco": {"lat": 15.3959, "lon": 73.8157, "state": "Goa", "type": "Port Town", "region": "Central Arabian Sea (Konkan Coast)"},
     "betul": {"lat": 15.1480, "lon": 73.9620, "state": "Goa", "type": "Fishing Harbor", "region": "Central Arabian Sea (Konkan Coast)"},
     "malvan": {"lat": 16.0600, "lon": 73.4600, "state": "Maharashtra", "type": "Konkan Fishing Center", "region": "Central Arabian Sea (Konkan Coast)"},
+
+    # Kerala
+    "kerala": {"lat": 9.9312, "lon": 76.2673, "state": "Kerala", "type": "Coastal State", "region": "South Arabian Sea (Malabar Coast)"},
 
     # Maharashtra
     "mumbai": {"lat": 18.9220, "lon": 72.8347, "state": "Maharashtra", "type": "Sassoon Dock & Ferry Wharf", "region": "North Arabian Sea (Maharashtra Coast)"},
@@ -83,6 +173,10 @@ INDIAN_COASTAL_LOCATIONS: Dict[str, Dict[str, Any]] = {
     "thoothukudi": {"lat": 8.7642, "lon": 78.1348, "state": "Tamil Nadu", "type": "Major Harbor", "region": "Gulf of Mannar (Coromandel South)"},
     "kanyakumari": {"lat": 8.0883, "lon": 77.5385, "state": "Tamil Nadu", "type": "Tricontinental Cape (Indian Ocean Confluence)", "region": "Indian Ocean Cape"},
     "colachel": {"lat": 8.1750, "lon": 77.2550, "state": "Tamil Nadu", "type": "Deep Sea Longliner Harbor", "region": "South Arabian Sea / Cape"},
+
+    # Puducherry
+    "puducherry": {"lat": 11.9416, "lon": 79.8083, "state": "Puducherry", "type": "Fishing Harbor & Port", "region": "Central Bay of Bengal (Coromandel Coast)"},
+    "pondicherry": {"lat": 11.9416, "lon": 79.8083, "state": "Puducherry", "type": "Fishing Harbor & Port", "region": "Central Bay of Bengal (Coromandel Coast)"},
 
     # Andhra Pradesh
     "visakhapatnam": {"lat": 17.6868, "lon": 83.2185, "state": "Andhra Pradesh", "type": "Major Port & Fishing Harbor", "region": "Central Bay of Bengal (Andhra Coast)"},
@@ -131,10 +225,14 @@ class CoastalGeocodingEngine:
 
         # 1. Exact or Substring match in predefined Indian Coastal locations
         for loc_name, data in INDIAN_COASTAL_LOCATIONS.items():
-            pattern = rf"\b{re.escape(loc_name)}\b"
-            if re.search(pattern, clean_text):
+            is_ascii = loc_name.isascii()
+            if is_ascii:
+                matched = bool(re.search(rf"\b{re.escape(loc_name)}\b", clean_text))
+            else:
+                matched = loc_name in clean_text
+            if matched:
                 return {
-                    "name": loc_name.title(),
+                    "name": data.get("canonical_name", loc_name.title()),
                     "latitude": data["lat"],
                     "longitude": data["lon"],
                     "state": data["state"],
@@ -161,13 +259,13 @@ class CoastalGeocodingEngine:
         # Try Nominatim live geocoding (restricted to India)
         if httpx is not None:
             try:
-                headers = {"User-Agent": "ORCA-Marine-Intelligence/1.0"}
+                headers = {"User-Agent": "Oceanova-Marine-Intelligence/1.0"}
                 params = {
                     "q": f"{location_name}, India",
                     "format": "json",
                     "limit": 1
                 }
-                async with httpx.AsyncClient(timeout=3.5) as client:
+                async with httpx.AsyncClient(timeout=1.0) as client:
                     resp = await client.get("https://nominatim.openstreetmap.org/search", params=params, headers=headers)
                     if resp.status_code == 200:
                         results = resp.json()

@@ -1,5 +1,5 @@
 """
-LangGraph Workflow Orchestrator for ORCA marine intelligence pipeline.
+LangGraph Workflow Orchestrator for Oceanova marine intelligence pipeline.
 Orchestrates: Supervisor -> Parallel Conditional Domain Agents (Weather, Ocean, Geofence, Tides, Routing) -> Synthesizer (Safety Gate, Explainability, VHF Script) -> Advisory JSON.
 """
 
@@ -26,6 +26,7 @@ from app.schemas import (
     GeoJSONFeatureCollection
 )
 from app.cache import cache
+from app.tools.geocoding import geocoder
 from app.agents.supervisor import supervisor_agent
 from app.agents.domain_agents import domain_agents
 from app.agents.synthesizer import synthesizer_agent
@@ -42,13 +43,40 @@ class MarineWorkflowOrchestrator:
         req_id = str(uuid.uuid4())
         sess_id = request.session_id or f"sess_{uuid.uuid4().hex[:8]}"
 
-        # 1. Quick Spatial Cache Check if lat/lon present
-        if request.latitude is not None and request.longitude is not None:
+        # 1. Pre-resolve coordinates from location or query if lat/lon not provided
+        lat = request.latitude
+        lon = request.longitude
+        loc_name = request.location_name or getattr(request, "target_location", None)
+        geo_match = None
+        if (lat is None or lon is None) and loc_name:
+            geo_match = geocoder.resolve_location(loc_name)
+            if geo_match:
+                lat = geo_match["latitude"]
+                lon = geo_match["longitude"]
+                request.latitude = lat
+                request.longitude = lon
+                request.location_name = geo_match["name"]
+        elif (lat is None or lon is None) and request.query:
+            geo_match = geocoder.resolve_location(request.query)
+            if geo_match:
+                lat = geo_match["latitude"]
+                lon = geo_match["longitude"]
+                request.latitude = lat
+                request.longitude = lon
+                request.location_name = geo_match["name"]
+
+        effective_lang = supervisor_agent.detect_language(
+            request.query or "",
+            request.language or getattr(request, "preferred_language", None) or "en"
+        )
+
+        # 2. Quick Spatial Cache Check if lat/lon present
+        if lat is not None and lon is not None:
             cache_key = cache.get_advisory_key(
-                request.latitude,
-                request.longitude,
+                lat,
+                lon,
                 request.target_species,
-                request.language or "en"
+                effective_lang
             )
             cached_data = await cache.get(cache_key)
             if cached_data:
@@ -105,10 +133,22 @@ class MarineWorkflowOrchestrator:
         # 3. Construct Final Typed MarineAdvisoryResponse
         lat = state["latitude"]
         lon = state["longitude"]
+        loc_name_val = state.get("location_name")
+        if not loc_name_val:
+            # Match against known port coordinates
+            known_ports = [
+                ("Mangalore", 12.9141, 74.8560), ("Cochin", 9.9312, 76.2673), ("Goa", 15.4056, 73.8043),
+                ("Mumbai", 18.9220, 72.8347), ("Chennai", 13.0827, 80.2707), ("Visakhapatnam", 17.6868, 83.2185),
+                ("Veraval", 20.9000, 70.3667), ("Porbandar", 21.6417, 69.6293), ("Paradip", 20.3167, 86.6167)
+            ]
+            for pname, plat, plon in known_ports:
+                if abs(lat - plat) < 0.15 and abs(lon - plon) < 0.15:
+                    loc_name_val = pname
+                    break
         location_meta = {
             "latitude": lat,
             "longitude": lon,
-            "location_name": state.get("location_name", "Indian Coastal Waters"),
+            "location_name": loc_name_val or "Indian Coastal Waters",
             "coastal_region": self._identify_region(lat, lon)
         }
 

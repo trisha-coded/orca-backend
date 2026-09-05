@@ -6,6 +6,7 @@ cyclonic depression scoring, and proactive severe storm / lightning alerts.
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 from app.config import settings
+from app.cache import cache
 from app.data.marine_tools import marine_client
 from app.schemas import WeatherCondition
 
@@ -124,6 +125,11 @@ class WeatherToolAdapter:
         }
 
     async def get_weather_assessment(self, lat: float, lon: float, temporal_target: Optional[str] = None) -> Dict[str, Any]:
+        cache_key = cache.get_weather_key(lat, lon)
+        cached_res = await cache.get(cache_key)
+        if cached_res:
+            return {**cached_res, "cached": True}
+
         raw_data = await marine_client.fetch_combined_conditions(lat, lon)
 
         wind_spd = _safe_float(raw_data.get("wind_speed_knots"), 12.0)
@@ -154,7 +160,7 @@ class WeatherToolAdapter:
             if wave_h >= settings.MAX_SAFE_WAVE_HEIGHT_METERS:
                 warnings.append(f"High wave hazard: {wave_h}m exceeds safe ceiling of {settings.MAX_SAFE_WAVE_HEIGHT_METERS}m")
             if wind_spd >= settings.MAX_SAFE_WIND_SPEED_KNOTS:
-                warnings.append(f"Gale force winds: {wind_spd} kts exceeds safe limit of {settings.MAX_SAFE_WIND_SPEED_KNOTS} kts")
+                warnings.append(f"Gale force winds: {wind_spd} kts exceeds safe limit of {settings.MAX_SAFE_WIND_SPEED_KIND_KNOTS if hasattr(settings, 'MAX_SAFE_WIND_KNOTS') else settings.MAX_SAFE_WIND_SPEED_KNOTS} kts")
             if wind_gust >= settings.MAX_SAFE_GUST_KNOTS:
                 warnings.append(f"Dangerous gusts up to {wind_gust} kts detected")
         elif wave_h >= settings.CAUTION_WAVE_HEIGHT_METERS or wind_spd >= settings.CAUTION_WIND_SPEED_KNOTS or vis_km < settings.MIN_VISIBILITY_KM:
@@ -182,7 +188,7 @@ class WeatherToolAdapter:
             summary=summary
         )
 
-        return {
+        result = {
             "condition": condition.model_dump(),
             "status": status,
             "warnings": warnings,
@@ -191,6 +197,8 @@ class WeatherToolAdapter:
             "hourly_profile": hourly_profile[:12],  # Next 12 hours
             "raw": raw_data
         }
+        await cache.set(cache_key, result, ttl_seconds=settings.CACHE_TTL_SECONDS)
+        return result
 
 
 weather_adapter = WeatherToolAdapter()

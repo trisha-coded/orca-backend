@@ -1,3 +1,3 @@
 """
-Multi-Agent Reasoning Layer for ORCA marine intelligence platform.
+Multi-Agent Reasoning Layer for Oceanova marine intelligence platform.
 """

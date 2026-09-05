@@ -1,5 +1,5 @@
 """
-API rate-limiting and concurrency management for the ORCA backend.
+API rate-limiting and concurrency management for the Oceanova backend.
 """
 
 import time

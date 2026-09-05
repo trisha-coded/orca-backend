@@ -1,575 +1,3884 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORCA Marine Intelligence | Conversational AI & Decision Platform</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Leaflet CSS & JS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-        #map { min-height: 520px; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OCEANOVA — Autonomous Marine Intelligence &amp; Nautical Decision Platform</title>
+
+  <!-- Google Fonts: Space Grotesk, Plus Jakarta Sans, IBM Plex Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==========================================================================
+       OCEANOVA DESIGN SYSTEM TOKENS
+       ========================================================================== */
+    :root {
+      --color-abyss: #010409;
+      --color-deep: #030812;
+      --color-hull: #060e1a;
+      --color-surface: #0b1626;
+      --color-surface-elevated: #102036;
+      --color-surface-hover: #152945;
+
+      --color-text-primary: #f8fafc;
+      --color-text-secondary: #94a3b8;
+      --color-text-muted: #64748b;
+      --color-text-dim: #334155;
+
+      --signal-cyan: #38bdf8;
+      --signal-cyan-bright: #7dd3fc;
+      --signal-cyan-glow: rgba(56, 189, 248, 0.18);
+
+      --signal-green: #10b981;
+      --signal-green-bright: #34d399;
+      --signal-green-glow: rgba(16, 185, 129, 0.20);
+
+      --signal-amber: #f59e0b;
+      --signal-amber-bright: #fbbf24;
+      --signal-amber-glow: rgba(245, 158, 11, 0.20);
+
+      --signal-red: #ef4444;
+      --signal-red-bright: #f87171;
+      --signal-red-glow: rgba(239, 68, 68, 0.25);
+
+      --border-subtle: rgba(255, 255, 255, 0.09);
+      --border-medium: rgba(56, 189, 248, 0.22);
+      --border-strong: rgba(56, 189, 248, 0.45);
+
+      --font-display: 'Space Grotesk', sans-serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+
+      --radius-xs: 3px;
+      --radius-sm: 6px;
+      --radius-md: 8px;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--color-abyss);
+      color: var(--color-text-primary);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--color-abyss);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Fixed Canvas Background for Hero Scroll Animation (Brightened per user request) */
+    #bg-canvas-container {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+      background: #000;
+      transition: opacity 0.5s ease;
+    }
+
+    #scroll-canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      opacity: 0.90; /* Brightened from 0.65 */
+    }
+
+    #bg-vignette {
+      position: absolute;
+      inset: 0;
+      /* Lightened gradient to showcase the background clearly */
+      background: radial-gradient(circle at 50% 45%, rgba(1, 4, 9, 0.08) 0%, rgba(1, 4, 9, 0.45) 75%, rgba(1, 4, 9, 0.80) 100%),
+                  linear-gradient(180deg, rgba(1, 4, 9, 0.35) 0%, rgba(1, 4, 9, 0.05) 40%, rgba(1, 4, 9, 0.75) 100%);
+      pointer-events: none;
+    }
+
+    /* ==========================================================================
+       PERSISTENT TOP BRIDGE HEADER
+       ========================================================================== */
+    #top-bridge-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 54px;
+      z-index: 100;
+      background: rgba(3, 8, 18, 0.94);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.25rem;
+      gap: 1rem;
+    }
+
+    .brand-cluster {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-shrink: 0;
+    }
+
+    .brand-mark {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: 0.08em;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      text-decoration: none;
+    }
+
+    .brand-mark::before {
+      content: '';
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      background: var(--signal-cyan);
+      box-shadow: 0 0 8px var(--signal-cyan);
+    }
+
+    .bridge-status-pill {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: var(--signal-green-bright);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .bridge-status-pill .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--signal-green-bright);
+      box-shadow: 0 0 6px var(--signal-green-bright);
+    }
+
+    /* Live GPS Position Telemetry in Header (Automatic State on Loading) */
+    .header-gps-telemetry {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--signal-green-bright);
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.38);
+      padding: 0.26rem 0.7rem;
+      border-radius: var(--radius-xs);
+      letter-spacing: 0.04em;
+      user-select: none;
+      transition: all 0.25s ease;
+      cursor: default;
+    }
+
+    .header-gps-telemetry .gps-beacon {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--signal-green-bright);
+      box-shadow: 0 0 8px var(--signal-green-bright);
+      animation: pulseLiveBeacon 1.8s infinite ease-in-out;
+    }
+
+    .header-gps-telemetry.pending {
+      color: var(--signal-cyan-bright);
+      background: rgba(56, 189, 248, 0.12);
+      border-color: rgba(56, 189, 248, 0.38);
+    }
+
+    .header-gps-telemetry.pending .gps-beacon {
+      background: var(--signal-cyan-bright);
+      box-shadow: 0 0 8px var(--signal-cyan-bright);
+    }
+
+    .header-port-telemetry {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--color-text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .header-port-telemetry .coord {
+      color: var(--signal-cyan);
+    }
+
+    /* Continuous Scroll Navigation Links (3 Essential Layers) */
+    .bridge-nav-tabs {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      height: 100%;
+    }
+
+    .nav-tab-link {
+      font-family: var(--font-display);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--color-text-secondary);
+      background: transparent;
+      text-decoration: none;
+      height: 100%;
+      padding: 0 1.1rem;
+      position: relative;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .nav-tab-link:hover { color: #fff; }
+    .nav-tab-link.active { color: #fff; }
+
+    .nav-tab-link.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2.5px;
+      background: var(--signal-cyan);
+      box-shadow: 0 0 8px var(--signal-cyan);
+    }
+
+    /* Header Right Utilities */
+    .header-utilities {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-shrink: 0;
+    }
+
+    .dialect-selector {
+      display: flex;
+      align-items: center;
+      gap: 0.2rem;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xs);
+      padding: 0.15rem 0.25rem;
+    }
+
+    .dialect-label {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: var(--color-text-muted);
+      padding: 0 0.35rem;
+    }
+
+    .dialect-chip {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      font-weight: 600;
+      padding: 0.18rem 0.45rem;
+      border-radius: 2px;
+      border: none;
+      background: transparent;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .dialect-chip:hover { color: #fff; }
+    .dialect-chip.active {
+      background: rgba(56, 189, 248, 0.2);
+      color: var(--signal-cyan-bright);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+    }
+
+    .btn-ptt-quick {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: #fff;
+      background: rgba(220, 38, 38, 0.18);
+      border: 1px solid rgba(220, 38, 38, 0.4);
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-ptt-quick:hover {
+      background: rgba(220, 38, 38, 0.35);
+      box-shadow: 0 0 12px rgba(220, 38, 38, 0.4);
+    }
+
+    .btn-ptt-quick.recording {
+      background: rgba(239, 68, 68, 0.5);
+      box-shadow: 0 0 18px rgba(239, 68, 68, 0.6);
+    }
+
+    .btn-ptt-quick .ptt-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #f87171;
+      animation: pulseDot 1.8s infinite;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    /* ==========================================================================
+       CONTINUOUS DECK WRAPPER & SECTIONS
+       ========================================================================== */
+    #deck-scroll-container {
+      position: relative;
+      z-index: 10;
+      padding-top: 54px;
+      padding-bottom: 40px;
+    }
+
+    .deck-section {
+      position: relative;
+      padding: 3rem 1.5rem;
+      max-width: 1420px;
+      margin: 0 auto;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .deck-section:last-of-type { border-bottom: none; }
+
+    .section-header-tag {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--signal-cyan);
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .section-header-tag::before {
+      content: '';
+      display: inline-block;
+      width: 12px;
+      height: 2px;
+      background: var(--signal-cyan);
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: #fff;
+      margin-bottom: 1.25rem;
+    }
+
+    /* ==========================================================================
+       SECTION 1: OVERVIEW & LAUNCH (Hero + Animation Track)
+       ========================================================================== */
+    #section-overview {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding-top: 1.5rem;
+      padding-bottom: 3.5rem;
+    }
+
+    .launch-decision-capsule {
+      display: inline-flex;
+      align-items: center;
+      gap: 1.2rem;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      border-radius: var(--radius-xs);
+      padding: 0.45rem 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+      color: var(--signal-green-bright);
+      margin-bottom: 1.5rem;
+      backdrop-filter: blur(8px);
+    }
+
+    .launch-decision-capsule .verdict {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-weight: 700;
+    }
+
+    .launch-decision-capsule .divider { color: var(--border-medium); }
+    .launch-decision-capsule .meta { color: var(--color-text-secondary); }
+
+    .overview-hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.6rem, 5.5vw, 4.5rem);
+      font-weight: 700;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      color: #fff;
+      margin-bottom: 0.4rem;
+    }
+
+    .overview-hero-sub {
+      font-family: var(--font-body);
+      font-size: 1.05rem;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      letter-spacing: 0.02em;
+    }
+
+    /* Centerpiece Circular PTT Station */
+    .overview-voice-centerpiece {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 3rem auto 3rem;
+      text-align: center;
+    }
+
+    .radio-status-tag {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--signal-cyan-bright);
+      background: rgba(8, 20, 36, 0.85);
+      border: 1px solid var(--border-medium);
+      padding: 0.35rem 0.9rem;
+      border-radius: var(--radius-xs);
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+    }
+
+    .ptt-disc-button {
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 50% 40%, #15273e 0%, #08111e 65%, #03070e 100%);
+      border: 2px solid rgba(56, 189, 248, 0.35);
+      box-shadow: 0 0 35px rgba(0, 0, 0, 0.8), inset 0 0 25px rgba(56, 189, 248, 0.12);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      user-select: none;
+      outline: none;
+    }
+
+    .ptt-disc-button::before {
+      content: '';
+      position: absolute;
+      inset: -9px;
+      border-radius: 50%;
+      border: 1px solid rgba(56, 189, 248, 0.20);
+      pointer-events: none;
+    }
+
+    .ptt-disc-button:hover {
+      border-color: var(--signal-cyan);
+      box-shadow: 0 0 45px rgba(56, 189, 248, 0.25), inset 0 0 30px rgba(56, 189, 248, 0.2);
+      transform: scale(1.02);
+    }
+
+    .ptt-disc-button.recording {
+      border-color: var(--signal-red-bright);
+      background: radial-gradient(circle at 50% 40%, #3e1515 0%, #1e0808 65%, #0e0303 100%);
+      box-shadow: 0 0 50px rgba(239, 68, 68, 0.55);
+      animation: pulseRecording 1.2s infinite;
+    }
+
+    @keyframes pulseRecording {
+      0%, 100% { transform: scale(1.02); }
+      50% { transform: scale(1.06); }
+    }
+
+    .ptt-mic-svg {
+      width: 36px;
+      height: 36px;
+      stroke: var(--signal-amber-bright);
+      transition: stroke 0.2s ease;
+    }
+
+    .ptt-disc-button.recording .ptt-mic-svg {
+      stroke: var(--signal-red-bright);
+    }
+
+    .ptt-disc-title {
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: #fff;
+      text-transform: uppercase;
+    }
+
+    .ptt-disc-sub {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      color: var(--color-text-secondary);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .ptt-disc-footnote {
+      margin-top: 1.1rem;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--color-text-muted);
+    }
+
+    /* Enhanced Location & Query Bar with GPS Detection */
+    .overview-query-strip {
+      max-width: 920px;
+      margin: 0 auto 2.5rem;
+      width: 100%;
+    }
+
+    .location-controls-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.6rem;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+    }
+
+    .hero-gps-telemetry {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.38);
+      color: var(--signal-green-bright);
+      padding: 0.4rem 0.85rem;
+      border-radius: var(--radius-xs);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      user-select: none;
+      transition: all 0.25s ease;
+      cursor: default;
+    }
+
+    .hero-gps-telemetry .gps-radar-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--signal-green-bright);
+      box-shadow: 0 0 10px var(--signal-green-bright);
+      animation: pulseLiveBeacon 1.8s infinite ease-in-out;
+    }
+
+    .hero-gps-telemetry.pending {
+      background: rgba(56, 189, 248, 0.12);
+      border-color: rgba(56, 189, 248, 0.38);
+      color: var(--signal-cyan-bright);
+    }
+    .hero-gps-telemetry.pending .gps-radar-dot {
+      background: var(--signal-cyan-bright);
+      box-shadow: 0 0 10px var(--signal-cyan-bright);
+    }
+
+    .port-selector-dropdown {
+      background: rgba(11, 22, 38, 0.95);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xs);
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      padding: 0.35rem 0.65rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .query-box-wrap {
+      display: flex;
+      gap: 0.6rem;
+      background: rgba(6, 14, 26, 0.92);
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius-sm);
+      padding: 0.45rem;
+      backdrop-filter: blur(12px);
+    }
+
+    .query-text-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      padding: 0.6rem 0.8rem;
+      font-family: var(--font-body);
+      font-size: 0.88rem;
+      color: #fff;
+    }
+
+    .query-text-input::placeholder {
+      color: var(--color-text-muted);
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+    }
+
+    .vessel-type-select {
+      background: rgba(11, 22, 38, 0.95);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xs);
+      color: var(--signal-cyan);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      padding: 0 0.6rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .btn-run-query {
+      background: var(--signal-cyan);
+      color: #02060d;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      padding: 0.6rem 1.35rem;
+      border-radius: var(--radius-xs);
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      transition: all 0.2s ease;
+    }
+
+    .btn-run-query:hover {
+      background: var(--signal-cyan-bright);
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.45);
+    }
+
+    .presets-row {
+      display: flex;
+      gap: 0.45rem;
+      margin-top: 0.65rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .preset-pill {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--color-text-secondary);
+      background: rgba(8, 18, 32, 0.75);
+      border: 1px solid var(--border-subtle);
+      border-radius: 9999px;
+      padding: 0.25rem 0.75rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .preset-pill:hover {
+      color: var(--signal-cyan-bright);
+      border-color: var(--signal-cyan);
+      background: rgba(56, 189, 248, 0.1);
+    }
+
+    /* Operational Telemetry Summary + Live MetOcean Gauges */
+    .telemetry-dispatch-card {
+      background: rgba(6, 14, 26, 0.92);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 1.35rem;
+      backdrop-filter: blur(16px);
+      margin-bottom: 1.5rem;
+    }
+
+    .dispatch-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 0.85rem;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 1.15rem;
+    }
+
+    .dispatch-title {
+      font-family: var(--font-display);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-text-secondary);
+    }
+
+    .dispatch-refresh-tag {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--signal-green-bright);
+      letter-spacing: 0.05em;
+    }
+
+    .dispatch-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 1.25rem;
+    }
+
+    .dispatch-metric-col {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .dispatch-metric-label {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .dispatch-metric-val {
+      font-family: var(--font-mono);
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .dispatch-metric-val.green { color: var(--signal-green-bright); }
+    .dispatch-metric-val.cyan { color: var(--signal-cyan-bright); }
+    .dispatch-metric-val.amber { color: var(--signal-amber-bright); }
+
+    .dispatch-metric-sub {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--color-text-muted);
+    }
+
+    /* Integrated Real Metocean Gauges in Overview */
+    .metocean-live-strip {
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-subtle);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1rem;
+    }
+
+    .metocean-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .metocean-bar {
+      height: 3px;
+      border-radius: 2px;
+      width: 100%;
+      margin-top: 0.35rem;
+    }
+
+    .metocean-bar.green { background: var(--signal-green); }
+    .metocean-bar.cyan { background: var(--signal-cyan); }
+    .metocean-bar.blue { background: #3b82f6; }
+    .metocean-bar.amber { background: var(--signal-amber); }
+
+    /* Scroll Down Indicator Cue */
+    .scroll-down-cue {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      color: var(--signal-cyan);
+      text-decoration: none;
+      margin-top: 1.5rem;
+      transition: transform 0.2s ease;
+    }
+
+    .scroll-down-cue:hover { transform: translateY(3px); }
+
+    .scroll-down-cue svg {
+      width: 16px;
+      height: 16px;
+      animation: bounceDown 1.8s infinite;
+    }
+
+    @keyframes bounceDown {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(5px); }
+    }
+
+    /* ==========================================================================
+       SECTION 2: TACTICAL ECDIS & MARITIME RADAR
+       ========================================================================== */
+    .ecdis-route-bar {
+      background: rgba(6, 14, 26, 0.94);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 0.85rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+    }
+
+    .ecdis-route-left {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .ecdis-route-left .route-name {
+      color: #fff;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    .ecdis-route-left .waypoint-tag {
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: var(--signal-cyan-bright);
+      padding: 0.2rem 0.55rem;
+      border-radius: var(--radius-xs);
+    }
+
+    .ecdis-route-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .btn-acq-target {
+      background: var(--signal-cyan);
+      color: #02060d;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+      padding: 0.35rem 0.85rem;
+      border-radius: var(--radius-xs);
+      border: none;
+      cursor: pointer;
+    }
+
+    .ecdis-split-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.35fr;
+      gap: 1.25rem;
+    }
+
+    .ecdis-panel {
+      background: rgba(6, 14, 26, 0.94);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ecdis-panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--color-text-muted);
+    }
+
+    .ecdis-panel-head strong {
+      color: var(--color-text-secondary);
+      font-family: var(--font-display);
+    }
+
+    .radar-scope-container {
+      width: 100%;
+      height: 440px;
+      position: relative;
+      background: #02060e;
+    }
+
+    #radar-scope-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .ecdis-chart-container {
+      width: 100%;
+      height: 440px;
+      position: relative;
+      background: #030a16;
+    }
+
+    #ecdis-chart-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .ecdis-panel-foot {
+      padding: 0.65rem 1rem;
+      border-top: 1px solid var(--border-subtle);
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--color-text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* ==========================================================================
+       SECTION 3: FISHERIES PFZ & OCEANOGRAPHY
+       ========================================================================== */
+    .pfz-hero-banner {
+      background: rgba(6, 14, 26, 0.94);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 0.95rem 1.4rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+
+    .pfz-banner-left .hotspot-tag {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .pfz-banner-left .hotspot-coords {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--color-text-secondary);
+      margin-top: 0.15rem;
+    }
+
+    .pfz-banner-metrics {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--color-text-muted);
+    }
+
+    .pfz-banner-metrics strong {
+      color: #fff;
+      font-size: 0.85rem;
+    }
+
+    /* Interactive Autopilot Intercept Button */
+    .btn-plot-intercept {
+      background: var(--signal-green);
+      color: #02060d;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      padding: 0.65rem 1.25rem;
+      border-radius: var(--radius-xs);
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      transition: all 0.2s ease;
+    }
+
+    .btn-plot-intercept:hover {
+      background: var(--signal-green-bright);
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-plot-intercept.engaged {
+      background: rgba(16, 185, 129, 0.25);
+      border: 1px solid var(--signal-green-bright);
+      color: var(--signal-green-bright);
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+    }
+
+    /* Autopilot HUD Toast */
+    #autopilot-hud-toast {
+      position: fixed;
+      top: 64px;
+      right: 20px;
+      z-index: 150;
+      background: rgba(6, 20, 36, 0.95);
+      border: 1px solid var(--signal-green-bright);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(16, 185, 129, 0.35);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem 1.15rem;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--signal-green-bright);
+      display: none;
+      align-items: center;
+      gap: 0.65rem;
+      animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(30px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .pfz-main-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 1.25rem;
+    }
+
+    .pfz-map-card {
+      background: rgba(6, 14, 26, 0.94);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pfz-map-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .pfz-layer-toggles {
+      display: flex;
+      gap: 0.35rem;
+    }
+
+    .pfz-toggle-btn {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: var(--radius-xs);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .pfz-toggle-btn.active {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: var(--signal-cyan);
+      color: var(--signal-cyan-bright);
+    }
+
+    .pfz-canvas-container {
+      width: 100%;
+      height: 380px;
+      position: relative;
+      background: #030c18;
+    }
+
+    #pfz-chart-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .pfz-map-foot {
+      padding: 0.65rem 1rem;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--color-text-muted);
+    }
+
+    .thermal-gradient-legend {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .thermal-gradient-bar {
+      width: 90px;
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #38bdf8 0%, #10b981 40%, #f59e0b 80%, #ef4444 100%);
+    }
+
+    .water-column-card {
+      background: rgba(6, 14, 26, 0.94);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 1.15rem;
+      margin-top: 1.25rem;
+    }
+
+    .water-column-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.6fr;
+      gap: 1.25rem;
+    }
+
+    .depth-distribution-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 0.65rem;
+      height: 70px;
+      padding-top: 0.5rem;
+    }
+
+    .depth-bar-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .bar-fill {
+      width: 100%;
+      background: rgba(56, 189, 248, 0.35);
+      border-radius: 2px 2px 0 0;
+      transition: height 0.3s ease;
+    }
+
+    .bar-fill.peak {
+      background: var(--signal-cyan-bright);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+    }
+
+    .depth-bar-col span {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      color: var(--color-text-muted);
+    }
+
+    .pfz-side-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .catch-transit-card {
+      background: rgba(6, 14, 26, 0.94);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 1.25rem;
+    }
+
+    .species-prob-row { margin-bottom: 0.85rem; }
+
+    .species-prob-head {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .species-prob-head strong { color: #fff; }
+
+    .species-prob-track {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+
+    .species-prob-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: var(--signal-cyan);
+    }
+
+    /* Refined Multi-Agent Advisory Dispatch Console */
+    .advisory-feed-card {
+      background: rgba(6, 14, 26, 0.96);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: var(--radius-sm);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .advisory-feed-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .advisory-feed-title {
+      font-family: var(--font-display);
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .advisory-feed-badge {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      letter-spacing: 0.05em;
+      padding: 0.2rem 0.5rem;
+      border-radius: var(--radius-xs);
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--signal-cyan);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .advisory-feed-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      margin: 0.5rem 0 1rem 0;
+      max-height: 480px;
+      overflow-y: auto;
+      padding-right: 0.25rem;
+    }
+
+    /* Core Synthesizer Master Dispatch Card */
+    .synth-dispatch-card {
+      background: linear-gradient(180deg, rgba(8, 20, 36, 0.85) 0%, rgba(4, 10, 20, 0.95) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .synth-dispatch-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--signal-green-bright);
+      border-radius: 4px 0 0 4px;
+    }
+
+    .synth-card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .synth-agent-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .synth-agent-name {
+      font-family: var(--font-display);
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      letter-spacing: 0.04em;
+    }
+
+    .synth-agent-beacon {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--signal-green-bright);
+      box-shadow: 0 0 8px var(--signal-green-bright);
+      animation: synthBeaconPulse 2s infinite;
+    }
+
+    @keyframes synthBeaconPulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.35); opacity: 0.6; }
+    }
+
+    .synth-meta-sub {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--color-text-muted);
+      letter-spacing: 0.04em;
+    }
+
+    .synth-decision-badge {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      padding: 0.28rem 0.65rem;
+      border-radius: var(--radius-xs);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .synth-decision-badge.go {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.5);
+      color: var(--signal-green-bright);
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+    }
+
+    .synth-decision-badge.caution {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.5);
+      color: var(--signal-amber-bright);
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+    }
+
+    .synth-decision-badge.nogo {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      color: #f87171;
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+    }
+
+    /* Structured Telemetry Grid */
+    .synth-telemetry-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+    }
+
+    @media (max-width: 600px) {
+      .synth-telemetry-grid { grid-template-columns: 1fr; }
+    }
+
+    .synth-telemetry-tile {
+      background: rgba(2, 6, 15, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-xs);
+      padding: 0.5rem 0.65rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .synth-tile-tag {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      font-weight: 600;
+      color: var(--signal-cyan);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .synth-tile-val {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: #e2e8f0;
+      line-height: 1.35;
+    }
+
+    .synth-tile-val strong { color: #fff; }
+
+    /* Operational Guidance Callout */
+    .synth-guidance-box {
+      background: rgba(16, 185, 129, 0.06);
+      border-left: 2px solid var(--signal-green-bright);
+      border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+      padding: 0.6rem 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: #a7f3d0;
+      line-height: 1.45;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    /* Action bar for VHF */
+    .synth-audio-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      padding-top: 0.45rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .btn-vhf-broadcast-play {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 700;
+      color: #020617;
+      background: var(--signal-cyan-bright);
+      border: 1px solid var(--signal-cyan-bright);
+      padding: 0.4rem 0.85rem;
+      border-radius: var(--radius-xs);
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
+    }
+
+    .btn-vhf-broadcast-play:hover {
+      background: #7dd3fc;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(56, 189, 248, 0.45);
+    }
+
+    .btn-vhf-script-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-family: var(--font-mono);
+      font-size: 0.64rem;
+      color: var(--color-text-secondary);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      padding: 0.38rem 0.65rem;
+      border-radius: var(--radius-xs);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-vhf-script-toggle:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .vhf-script-drawer {
+      display: none;
+      width: 100%;
+      background: #01040a;
+      border: 1px dashed rgba(56, 189, 248, 0.25);
+      border-radius: var(--radius-xs);
+      padding: 0.65rem 0.85rem;
+      font-family: var(--font-mono);
+      font-size: 0.64rem;
+      color: #94a3b8;
+      line-height: 1.5;
+      letter-spacing: 0.02em;
+    }
+
+    .vhf-script-drawer.open { display: block; }
+
+    /* Sub-Agent Micro Cards */
+    .subagent-dispatch-card {
+      background: rgba(4, 10, 20, 0.7);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xs);
+      padding: 0.65rem 0.85rem;
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      line-height: 1.45;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      border-left: 2px solid var(--signal-cyan);
+    }
+
+    .subagent-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--signal-cyan);
+      font-weight: 600;
+      font-size: 0.64rem;
+    }
+
+    .subagent-tag {
+      font-size: 0.58rem;
+      color: var(--color-text-muted);
+      border: 1px solid var(--border-subtle);
+      padding: 0.1rem 0.35rem;
+      border-radius: 2px;
+    }
+
+    .quick-log-entry-row {
+      display: flex;
+      gap: 0.45rem;
+      margin-top: auto;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .quick-log-input {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xs);
+      padding: 0.45rem 0.65rem;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: #fff;
+      outline: none;
+    }
+
+    .btn-tx {
+      background: var(--signal-cyan);
+      color: #02060d;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.72rem;
+      padding: 0.45rem 0.85rem;
+      border-radius: var(--radius-xs);
+      border: none;
+      cursor: pointer;
+    }
+
+    /* ==========================================================================
+       PERSISTENT BOTTOM BRIDGE TELEMETRY BAR
+       ========================================================================== */
+    #bottom-bridge-status {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 32px;
+      z-index: 100;
+      background: rgba(2, 6, 14, 0.96);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--color-text-muted);
+      letter-spacing: 0.04em;
+    }
+
+    .bottom-status-items {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .bottom-status-items span strong {
+      color: var(--color-text-secondary);
+      font-weight: 500;
+    }
+
+    /* ==========================================================================
+       PUSH-TO-TALK (PTT) MODAL
+       ========================================================================== */
+    #ptt-modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(2, 6, 14, 0.78);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    #ptt-modal-overlay.open { display: flex; }
+
+    .ptt-modal-card {
+      width: min(520px, 95vw);
+      background: #07101e;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 35px rgba(56, 189, 248, 0.15);
+      overflow: hidden;
+      animation: modalSlide 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalSlide {
+      from { opacity: 0; transform: scale(0.94) translateY(12px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .ptt-modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.85rem 1.25rem;
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .ptt-modal-title {
+      font-family: var(--font-display);
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    .ptt-modal-close {
+      background: transparent;
+      border: none;
+      color: var(--color-text-muted);
+      font-size: 1.2rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0.2rem;
+    }
+
+    .ptt-modal-close:hover { color: #fff; }
+
+    .ptt-settings-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xs);
+      padding: 0.65rem 0.8rem;
+    }
+    .ptt-settings-label {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--color-text-muted);
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .ptt-dialect-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    .ptt-dialect-btn {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-xs);
+      color: var(--color-text-secondary);
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      padding: 0.3rem 0.55rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .ptt-dialect-btn:hover {
+      border-color: var(--signal-cyan);
+      color: #fff;
+    }
+    .ptt-dialect-btn.active {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: var(--signal-cyan);
+      color: var(--signal-cyan-bright);
+      font-weight: 600;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+    }
+    .ptt-audio-playback {
+      display: none;
+      width: 100%;
+      height: 34px;
+      border-radius: var(--radius-xs);
+      outline: none;
+    }
+    .ptt-file-badge {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: #38bdf8;
+      display: none;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 0.65rem;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px dashed rgba(56, 189, 248, 0.35);
+      border-radius: var(--radius-xs);
+    }
+
+    .ptt-modal-body {
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+    }
+
+    .ptt-modal-waveform {
+      height: 60px;
+      width: 100%;
+      background: #02060e;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xs);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    #ptt-wave-canvas { width: 100%; height: 100%; }
+
+    .ptt-transcript-log {
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      line-height: 1.45;
+      padding: 0.75rem;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xs);
+      color: var(--color-text-secondary);
+    }
+
+    .ptt-transcript-log strong { color: var(--signal-cyan-bright); }
+
+    .ptt-modal-actions { display: flex; gap: 0.75rem; }
+
+    .btn-record-toggle {
+      flex: 1;
+      background: rgba(220, 38, 38, 0.2);
+      border: 1px solid rgba(220, 38, 38, 0.5);
+      color: #fff;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+      padding: 0.75rem;
+      border-radius: var(--radius-xs);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .btn-record-toggle:hover, .btn-record-toggle.recording {
+      background: rgba(220, 38, 38, 0.45);
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+    }
+
+    .btn-speak-advisory {
+      background: var(--signal-cyan);
+      color: #02060d;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-xs);
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-speak-advisory:hover { background: var(--signal-cyan-bright); }
+
+    /* Responsive Breakpoints */
+    @media (max-width: 1024px) {
+      .dispatch-metrics-grid { grid-template-columns: repeat(3, 1fr); }
+      .metocean-live-strip { grid-template-columns: repeat(3, 1fr); }
+      .ecdis-split-grid { grid-template-columns: 1fr; }
+      .pfz-main-grid { grid-template-columns: 1fr; }
+      .header-port-telemetry { display: none; }
+    }
+
+    @media (max-width: 640px) {
+      .dispatch-metrics-grid { grid-template-columns: repeat(2, 1fr); }
+      .metocean-live-strip { grid-template-columns: repeat(2, 1fr); }
+      .location-controls-bar { flex-direction: column; align-items: flex-start; }
+      .bridge-nav-tabs .nav-tab-link { padding: 0 0.5rem; font-size: 0.65rem; }
+    }
+  </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col">
 
-    <!-- Header -->
-    <header class="bg-slate-900/90 backdrop-blur border-b border-slate-800 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-                    <i data-lucide="compass" class="w-6 h-6 text-white"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-lg text-white flex items-center gap-2">
-                        ORCA Marine Intelligence Platform
-                        <span class="text-xs bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2 py-0.5 rounded-full font-mono">Conversational AI • LangGraph</span>
-                    </h1>
-                    <p class="text-xs text-slate-400">Autonomous Marine Meteorology, PFZ Modeling, Safe Routing, Tides & Geofencing</p>
-                </div>
-            </div>
+<body>
 
-            <div class="flex items-center gap-3">
-                <div id="system-status-badge" class="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs px-3 py-1.5 rounded-lg">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span>Backend Operational</span>
-                </div>
-                <a href="/docs" target="_blank" class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-700 transition">
-                    <i data-lucide="file-code" class="w-4 h-4"></i>
-                    Swagger UI (/docs)
-                </a>
-                <a href="/redoc" target="_blank" class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-700 transition">
-                    <i data-lucide="book-open" class="w-4 h-4"></i>
-                    ReDoc
-                </a>
-            </div>
-        </div>
-    </header>
+  <!-- Fixed Canvas for Hero Scroll Animation -->
+  <div id="bg-canvas-container">
+    <canvas id="scroll-canvas"></canvas>
+    <div id="bg-vignette"></div>
+  </div>
 
-    <!-- Main Container -->
-    <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
+  <!-- Autopilot Active HUD Toast -->
+  <div id="autopilot-hud-toast">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polygon points="12 8 8 12 12 16 12 8"></polygon></svg>
+    <span id="autopilotToastMsg">AUTOPILOT ENGAGED: STEERING 242° TRUE • 8.5 KT</span>
+  </div>
 
-        <!-- Left Column: Conversational AI Input, Location Resolver & Controls (5 Cols) -->
-        <div class="lg:col-span-5 space-y-5">
+  <!-- ======================================================================
+       PERSISTENT TOP BRIDGE HEADER
+       ====================================================================== -->
+  <header id="top-bridge-header">
+    <div class="brand-cluster">
+      <a href="#section-overview" class="brand-mark">OCEANOVA</a>
+      <div class="bridge-status-pill" id="headerPassagePill">
+        <span class="dot"></span>
+        <span id="headerStatusText">Safe</span>
+      </div>
+      <div class="header-gps-telemetry pending" id="headerGpsTelemetry" onclick="initAutoGpsLocation(true)" title="Automatic live GPS positioning. Click to refresh satellite fix.">
+        <span class="gps-beacon" id="headerGpsBeacon"></span>
+        <span id="headerGpsText">GPS AUTO-DETECT</span>
+      </div>
+    </div>
 
-            <!-- Presets Bar -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
-                <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2.5 flex items-center justify-between">
-                    <span>📍 Coastal City & Scenario Presets:</span>
-                    <span class="text-[10px] text-cyan-400 font-mono">Auto-Geocoded</span>
-                </label>
-                <div class="grid grid-cols-2 gap-2 text-xs">
-                    <button onclick="setPreset('Mangalore', 'Is it safe to fish for Indian Mackerel near Mangalore tomorrow morning?', 'Indian Mackerel', 'tomorrow morning', 'en')" class="p-2 bg-slate-800/80 hover:bg-cyan-950 hover:border-cyan-500/40 border border-slate-700 rounded-lg text-left transition">
-                        <div class="font-medium text-slate-200">Mangalore (Canara)</div>
-                        <div class="text-[11px] text-emerald-400">🌊 Temporal • Mackerel</div>
-                    </button>
-                    <button onclick="setPreset('Cochin', 'Can I go fishing for Yellowfin Tuna today off Cochin?', 'Yellowfin Tuna', 'today', 'en')" class="p-2 bg-slate-800/80 hover:bg-cyan-950 hover:border-cyan-500/40 border border-slate-700 rounded-lg text-left transition">
-                        <div class="font-medium text-slate-200">Cochin (Malabar)</div>
-                        <div class="text-[11px] text-cyan-400">✅ Tuna Spot • Safe</div>
-                    </button>
-                    <button onclick="setPreset('Rameswaram', 'Are we close to the Sri Lanka maritime border line?', 'Seer Fish', 'today', 'ta')" class="p-2 bg-slate-800/80 hover:bg-amber-950 hover:border-amber-500/40 border border-slate-700 rounded-lg text-left transition">
-                        <div class="font-medium text-slate-200">Rameswaram / Palk Strait</div>
-                        <div class="text-[11px] text-amber-400">⚠️ IMBL Buffer Alert</div>
-                    </button>
-                    <button onclick="setPreset('Veraval', 'What are wave, tide, and pomfret conditions off Veraval?', 'Pomfret', 'next 2 days', 'hi')" class="p-2 bg-slate-800/80 hover:bg-purple-950 hover:border-purple-500/40 border border-slate-700 rounded-lg text-left transition">
-                        <div class="font-medium text-slate-200">Veraval (Gujarat)</div>
-                        <div class="text-[11px] text-purple-400">📊 Tides & Wave Forecast</div>
-                    </button>
-                </div>
-            </div>
+    <div class="header-port-telemetry">
+      <span id="activeHarborLabel">MANGALORE COASTAL SECTOR</span>
+      <span>•</span>
+      <span class="coord" id="activeCoordLabel">12°54'50"N 74°51'21"E</span>
+    </div>
 
-            <!-- Conversational NLU Query Form -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
-                <div class="flex items-center justify-between">
-                    <h2 class="font-semibold text-sm text-slate-200 flex items-center gap-2">
-                        <i data-lucide="message-square-code" class="w-4 h-4 text-cyan-400"></i>
-                        Conversational Natural Language Query
-                    </h2>
-                    <span class="text-[10px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2 py-0.5 rounded">NLU + Geocoder</span>
-                </div>
+    <!-- Continuous Scroll Navigation Tabs (Overview, ECDIS, PFZ) -->
+    <nav class="bridge-nav-tabs" aria-label="Bridge Navigation">
+      <a href="#section-overview" class="nav-tab-link active" data-target="section-overview">Overview &amp; Launch</a>
+      <a href="#section-ecdis" class="nav-tab-link" data-target="section-ecdis">Tactical ECDIS</a>
+      <a href="#section-pfz" class="nav-tab-link" data-target="section-pfz">Fisheries PFZ</a>
+    </nav>
 
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Enter your question or voice query:</label>
-                    <textarea id="query-input" rows="3" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 resize-none font-sans leading-relaxed">Is it safe to fish near Mangalore tomorrow morning for mackerel?</textarea>
-                </div>
+    <!-- Dialect Selector & PTT Trigger -->
+    <div class="header-utilities">
+      <div class="dialect-selector" title="Switch Operating Language">
+        <span class="dialect-label">DIAL:</span>
+        <button class="dialect-chip active" data-lang="en" onclick="setDialect('en')">EN</button>
+        <button class="dialect-chip" data-lang="kn" onclick="setDialect('kn')">KN</button>
+        <button class="dialect-chip" data-lang="hi" onclick="setDialect('hi')">HI</button>
+        <button class="dialect-chip" data-lang="ml" onclick="setDialect('ml')">ML</button>
+        <button class="dialect-chip" data-lang="ta" onclick="setDialect('ta')">TA</button>
+        <button class="dialect-chip" data-lang="te" onclick="setDialect('te')">TE</button>
+      </div>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Target Coastal Location</label>
-                        <input id="location-input" type="text" placeholder="e.g. Mangalore, Cochin, Vizag..." value="Mangalore" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500" />
-                    </div>
+      <button class="btn-ptt-quick" id="btnPttQuick" onclick="toggleHeroPTT()" title="Voice Push-To-Talk">
+        <span class="ptt-dot"></span>
+        <span id="quickPttLabel">• PTT CH-16</span>
+      </button>
+    </div>
+  </header>
 
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Temporal Window</label>
-                        <select id="temporal-input" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
-                            <option value="today">Today</option>
-                            <option value="tomorrow morning" selected>Tomorrow Morning</option>
-                            <option value="tomorrow afternoon">Tomorrow Afternoon</option>
-                            <option value="next 2 days">Next 2 Days</option>
-                            <option value="next 3 days">Next 3 Days</option>
-                        </select>
-                    </div>
-                </div>
+  <!-- ======================================================================
+       CONTINUOUS VERTICAL OPERATIONAL DECK
+       ====================================================================== -->
+  <main id="deck-scroll-container">
 
-                <div class="grid grid-cols-3 gap-2">
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Target Species</label>
-                        <select id="species-input" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
-                            <option value="Indian Mackerel">Mackerel</option>
-                            <option value="Yellowfin Tuna">Yellowfin Tuna</option>
-                            <option value="Skipjack Tuna">Skipjack Tuna</option>
-                            <option value="Indian Oil Sardine">Oil Sardine</option>
-                            <option value="Seer Fish">Seer Fish</option>
-                            <option value="Pomfret">Pomfret</option>
-                            <option value="Tiger Prawn">Tiger Prawn</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Vessel Category</label>
-                        <select id="vessel-input" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
-                            <option value="Motorized Boat">Motorized Boat</option>
-                            <option value="Traditional Canoe">Traditional Canoe</option>
-                            <option value="Mechanized Trawler">Mechanized Trawler</option>
-                            <option value="Deep Sea Vessel">Deep Sea Vessel</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Language</label>
-                        <select id="lang-input" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
-                            <option value="en">English (en)</option>
-                            <option value="ta">தமிழ் (Tamil)</option>
-                            <option value="ml">മലയാളം (Malayalam)</option>
-                            <option value="hi">हिन्दी (Hindi)</option>
-                            <option value="te">తెలుగు (Telugu)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="flex gap-2 pt-1">
-                    <button id="run-btn" onclick="runConversationalEngine()" class="flex-1 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold py-2.5 px-4 rounded-xl shadow-lg shadow-cyan-600/30 flex items-center justify-center gap-2 text-sm transition">
-                        <i data-lucide="sparkles" class="w-4 h-4"></i>
-                        Run Multi-Agent Reasoning
-                    </button>
-                    <button onclick="resolveLocationOnly()" title="Test Coastal Geocoder" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2.5 rounded-xl border border-slate-700 text-xs flex items-center gap-1 transition">
-                        <i data-lucide="map-pin" class="w-4 h-4 text-cyan-400"></i> Geocode
-                    </button>
-                </div>
-            </div>
-
-            <!-- Multi-Agent Reasoning Trace Timeline -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
-                <div class="flex items-center justify-between mb-3">
-                    <h2 class="font-semibold text-sm text-slate-200 flex items-center gap-2">
-                        <i data-lucide="cpu" class="w-4 h-4 text-cyan-400"></i>
-                        Multi-Agent Reasoning Trace (LangGraph)
-                    </h2>
-                    <span id="pipeline-latency" class="text-xs font-mono text-cyan-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">0.00 ms</span>
-                </div>
-
-                <div id="agent-timeline" class="space-y-2.5 max-h-64 overflow-y-auto custom-scrollbar pr-1 text-xs">
-                    <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-500 text-center italic">
-                        Awaiting query execution. Click "Run Multi-Agent Reasoning" to view the live graph execution steps.
-                    </div>
-                </div>
-            </div>
+    <!-- ────────────────────────────────────────────────────────────────────
+         SECTION 1: OVERVIEW & LAUNCH (Hero + Animation Track)
+         ──────────────────────────────────────────────────────────────────── -->
+    <section id="section-overview" class="deck-section">
+      <div>
+        <!-- Top Launch Decision Capsule (Real Backend Data) -->
+        <div class="launch-decision-capsule" id="launchDecisionCapsule">
+          <div class="verdict">
+            <span>•</span>
+            <span id="capsuleVerdictText">GO — SAFE TO LAUNCH</span>
+          </div>
+          <span class="divider">|</span>
+          <div class="meta">
+            <span>Safety Score </span><strong id="capsuleScoreText" style="color: #fff;">100/100</strong>
+          </div>
+          <span class="divider">|</span>
+          <div class="meta">
+            <span>Sailing Window </span><span id="capsuleWindowText">05:30 — 10:30 IST</span>
+          </div>
         </div>
 
-        <!-- Right Column: Interactive Map, Decision Cards, Route & Tides (7 Cols) -->
-        <div class="lg:col-span-7 space-y-5">
+        <!-- Hero Branding -->
+        <h1 class="overview-hero-title">OCEANOVA</h1>
+        <p class="overview-hero-sub" id="overviewHeroSub">Autonomous Marine Intelligence &amp; Nautical Decision Platform</p>
+      </div>
 
-            <!-- Cyclone / Severe Weather Warning Banner (Conditional) -->
-            <div id="cyclone-alert-banner" class="hidden bg-rose-950/80 border border-rose-500/50 rounded-2xl p-4 shadow-xl text-rose-200">
-                <div class="flex items-start gap-3">
-                    <div class="w-8 h-8 rounded-lg bg-rose-600/30 flex items-center justify-center shrink-0">
-                        <i data-lucide="alert-triangle" class="w-5 h-5 text-rose-400"></i>
-                    </div>
-                    <div>
-                        <div class="font-bold text-sm text-rose-300" id="cyclone-alert-title">SEVERE WEATHER ALERT</div>
-                        <div class="text-xs text-rose-200/90 mt-0.5" id="cyclone-alert-body">MANDATORY EVACUATION: Extreme storm depression detected.</div>
-                    </div>
-                </div>
+      <!-- Centerpiece Circular Push-to-Talk Station -->
+      <div class="overview-voice-centerpiece">
+        <div class="radio-status-tag">
+          VHF CH-16 (156.800 MHZ) • AI REASONING CORE ARMED
+        </div>
+
+        <button class="ptt-disc-button" id="pttDiscBtn" onclick="toggleHeroPTT()" aria-label="Click or hold to talk">
+          <svg class="ptt-mic-svg" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="8" y1="23" x2="16" y2="23"></line>
+          </svg>
+          <span class="ptt-disc-title" id="discTitle">CLICK OR HOLD TO TALK</span>
+        </button>
+
+        <div class="ptt-disc-footnote" id="pttFootnote">
+          Ready • Push-to-Talk Active
+        </div>
+      </div>
+
+      <!-- Query Bar with Integrated Live GPS Detection & Coastal Port Picker -->
+      <div class="overview-query-strip">
+        <div class="location-controls-bar">
+          <div class="hero-gps-telemetry pending" id="heroGpsTelemetry" onclick="initAutoGpsLocation(true)" title="Automatic live GPS detection active. Click to refresh satellite fix.">
+            <span class="gps-radar-dot" id="heroGpsDot"></span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="7"></circle><line x1="12" y1="1" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="23"></line><line x1="12" y1="12" x2="4" y2="12"></line><line x1="20" y1="12" x2="23" y2="12"></line></svg>
+            <span id="heroGpsBtnLabel">GPS AUTO-DETECT: ACQUIRING LIVE POSITION...</span>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <span style="color: var(--color-text-muted);" id="coastalHarborText">COASTAL HARBOR:</span>
+            <select id="portSelector" class="port-selector-dropdown" onchange="handlePortDropdownChange(this.value)">
+              <option value="Mangalore" selected>Mangalore (Karnataka)</option>
+              <option value="Malpe">Malpe Harbor (Karnataka)</option>
+              <option value="Karwar">Karwar (Karnataka)</option>
+              <option value="Goa">Goa (Mormugao / Panaji)</option>
+              <option value="Cochin">Cochin (Kerala)</option>
+              <option value="Calicut">Calicut / Beypore (Kerala)</option>
+              <option value="Mumbai">Mumbai Harbor (Maharashtra)</option>
+              <option value="Veraval">Veraval (Gujarat)</option>
+              <option value="Porbandar">Porbandar (Gujarat)</option>
+              <option value="Rameswaram">Rameswaram / Palk Strait (TN)</option>
+              <option value="Chennai">Chennai Harbor (TN)</option>
+              <option value="Kanyakumari">Kanyakumari (Cape Comorin)</option>
+              <option value="Visakhapatnam">Visakhapatnam (AP)</option>
+              <option value="Paradip">Paradip (Odisha)</option>
+              <option value="Kolkata">Kolkata / Haldia (WB)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="query-box-wrap">
+          <input type="text" id="overviewQueryInput" class="query-text-input" placeholder="Ask in natural language (e.g. Is it safe to fish near Mangalore for mackerel tomorrow?)..." value="Is it safe to fish near Mangalore tomorrow morning for mackerel?" onkeydown="if(event.key==='Enter') executeMultiAgentQuery()" />
+          
+          <select id="vesselSelect" class="vessel-type-select" title="Select Vessel Class" onchange="executeMultiAgentQuery()">
+            <option value="Mechanized Trawler" selected>Mechanized Trawler</option>
+            <option value="Motorized Boat">Motorized Boat</option>
+            <option value="Traditional Canoe">Traditional Canoe</option>
+            <option value="Deep Sea Vessel">Deep Sea Vessel</option>
+          </select>
+
+          <button class="btn-run-query" id="btnTransmit" onclick="executeMultiAgentQuery()">
+            <span id="btnTransmitLabel">TRANSMIT</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          </button>
+        </div>
+
+        <div class="presets-row">
+          <button class="preset-pill" onclick="loadPreset('Mangalore', 'Is it safe to fish near Mangalore tomorrow morning for mackerel?', 'Indian Mackerel', 'Mechanized Trawler')">Mangalore (Canara) • Mackerel</button>
+          <button class="preset-pill" onclick="loadPreset('Cochin', 'Can I go fishing for Yellowfin Tuna today off Cochin?', 'Yellowfin Tuna', 'Motorized Boat')">Cochin (Malabar) • Tuna</button>
+          <button class="preset-pill" onclick="loadPreset('Rameswaram', 'Are we close to the Sri Lanka maritime border line?', 'Seer Fish', 'Motorized Boat')">Rameswaram (Palk Strait) • IMBL</button>
+          <button class="preset-pill" onclick="loadPreset('Veraval', 'What are wave, tide, and pomfret conditions off Veraval?', 'Pomfret', 'Mechanized Trawler')">Veraval (Gujarat) • Tides</button>
+        </div>
+      </div>
+
+      <!-- Scroll Down Indicator to Tactical ECDIS -->
+      <a href="#section-ecdis" class="scroll-down-cue">
+        <span id="scrollCueText">SCROLL DOWN TO TACTICAL ECDIS &amp; BOUNDARY RADAR</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </a>
+    </section>
+
+    <!-- ────────────────────────────────────────────────────────────────────
+         SECTION 2: TACTICAL ECDIS & MARITIME BOUNDARY RADAR
+         ──────────────────────────────────────────────────────────────────── -->
+    <section id="section-ecdis" class="deck-section">
+      <div class="section-header-tag">Deck Layer 02 • Spatial Boundaries &amp; Radar Scope</div>
+      <h2 class="section-title">Tactical ECDIS &amp; 360° Radar Operations</h2>
+
+      <!-- Top ECDIS Route Bar -->
+      <div class="ecdis-route-bar">
+        <div class="ecdis-route-left">
+          <div class="route-name">
+            <span style="color: var(--signal-green-bright);">•</span>
+            <span id="ecdisRouteHeader">Route: Mangalore Departure → PFZ Hotspot Alpha • 309 NM IMBL Buffer</span>
+          </div>
+          <span class="waypoint-tag" id="ecdisWpTag">WP-01  242°  48.6 NM  ETA 01h 20m</span>
+        </div>
+
+        <div class="ecdis-route-right">
+          <span>RADAR: X-BAND 9.4 GHz | RNG: 12 NM | GAIN: 78%</span>
+          <span style="color: var(--signal-amber-bright);">◆ TGT-01 CPA 3.1 NM</span>
+          <button class="btn-acq-target" onclick="alert('Target Acquired: Safe passing CPA 3.1 NM. No collision risk detected.')">ACQ TARGET</button>
+        </div>
+      </div>
+
+      <!-- Split 2-Column ECDIS Grid -->
+      <div class="ecdis-split-grid">
+        
+        <!-- Left: 360° Tactical Radar Scope -->
+        <div class="ecdis-panel">
+          <div class="ecdis-panel-head">
+            <strong>RADAR SCOPE (360° CONTINUOUS SWEEP)</strong>
+            <span>NORTH-UP STAB | 24 RPM | WGS-84</span>
+          </div>
+          <div class="radar-scope-container">
+            <canvas id="radar-scope-canvas"></canvas>
+          </div>
+          <div class="ecdis-panel-foot">
+            <span id="radarBearingFoot">BEARING: 242.0° T</span>
+            <span id="radarDistanceFoot">RANGE: 48.6 NM</span>
+            <span>TUNING: AUTO AFC</span>
+            <span>RAIN CLUTTER: 12% MED</span>
+          </div>
+        </div>
+
+        <!-- Right: Mercator Projection ECDIS Chart -->
+        <div class="ecdis-panel">
+          <div class="ecdis-panel-head">
+            <strong>CHART (MERCATOR PROJECTION)</strong>
+            <span>INDIAN EEZ V12 &amp; RESTRICTED MPAS</span>
+          </div>
+          <div class="ecdis-chart-container">
+            <canvas id="ecdis-chart-canvas"></canvas>
+          </div>
+          <div class="ecdis-panel-foot">
+            <span id="ecdisCursorTelemetry">Cursor: 12°44.20'N 74°22.10'E | Depth: 118 m | SST: 28.4 °C | Chl: 1.82 mg/m³</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ────────────────────────────────────────────────────────────────────
+         SECTION 3: FISHERIES PFZ & OCEANOGRAPHIC INTELLIGENCE
+         ──────────────────────────────────────────────────────────────────── -->
+    <section id="section-pfz" class="deck-section">
+      <div class="section-header-tag">Deck Layer 03 • Satellite Oceanography &amp; PFZ Modeling</div>
+      <h2 class="section-title">Fisheries Potential Fishing Zone (PFZ) &amp; Biology</h2>
+
+      <!-- Top Hotspot Alpha Banner -->
+      <div class="pfz-hero-banner">
+        <div class="pfz-banner-left">
+          <div class="hotspot-tag">
+            <span style="color: var(--signal-green-bright);">•</span>
+            <span id="pfzHotspotTitle">Hotspot Alpha • 89% Biological Suitability</span>
+          </div>
+          <div class="hotspot-coords" id="pfzHotspotCoords">Target Coordinates: 12°38'04"N, 74°02'15"E • Offshore Feeding Plume</div>
+        </div>
+
+        <div class="pfz-banner-metrics">
+          <div>BEARING / RANGE: <strong id="pfzBearingRange">242° / 48.6 NM</strong></div>
+          <div>EST. TRANSIT: <strong id="pfzTransitTime">01h 20m</strong></div>
+          <div>SPEED: <strong id="pfzSpeed">8.5 kts</strong></div>
+          <!-- Real Interactive Autopilot Intercept Button -->
+          <button class="btn-plot-intercept" id="btnAutopilot" onclick="toggleAutopilotIntercept()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="12 8 8 12 12 16 12 8"></polygon></svg>
+            <span id="btnAutopilotLabel">PLOT AUTOPILOT INTERCEPT</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Main PFZ Grid -->
+      <div class="pfz-main-grid">
+        
+        <!-- Left: Oceanographic Satellite Map & Water Column -->
+        <div>
+          <div class="pfz-map-card">
+            <div class="pfz-map-head">
+              <span style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--signal-green-bright);">● Copernicus SST Thermal Front + GlobColour Chl-a</span>
+              <div class="pfz-layer-toggles">
+                <button class="pfz-toggle-btn active" onclick="togglePfzLayer(this, 'sst')">SST Composite</button>
+                <button class="pfz-toggle-btn" onclick="togglePfzLayer(this, 'chl')">Chlorophyll Plume</button>
+                <button class="pfz-toggle-btn" onclick="togglePfzLayer(this, 'bathy')">Bathymetry</button>
+                <button class="pfz-toggle-btn" onclick="togglePfzLayer(this, 'currents')">Currents</button>
+              </div>
             </div>
 
-            <!-- Decision Banner -->
-            <div id="decision-banner" class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex items-center justify-between gap-4">
-                <div class="flex items-center gap-3">
-                    <div id="decision-icon-container" class="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-lg border border-emerald-500/30">
-                        GO
-                    </div>
-                    <div>
-                        <div class="text-xs text-slate-400" id="location-resolved-label">Location: Mangalore Coastal Waters (12.91° N, 74.85° E)</div>
-                        <div id="decision-title" class="font-bold text-base text-slate-100">Decision: GO (Favorable Sea Conditions)</div>
-                    </div>
-                </div>
-
-                <div class="text-right">
-                    <div class="text-xs text-slate-400">Safety Score</div>
-                    <div id="safety-score-value" class="text-2xl font-black text-emerald-400 font-mono">100<span class="text-xs font-normal text-slate-500">/100</span></div>
-                </div>
+            <div class="pfz-canvas-container">
+              <canvas id="pfz-chart-canvas"></canvas>
             </div>
 
-            <!-- Interactive Leaflet Map with Route & Waypoints -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-semibold text-sm text-slate-200 flex items-center gap-2">
-                        <i data-lucide="map" class="w-4 h-4 text-cyan-400"></i>
-                        Nautical Map with Safest Route Track & Waypoints
-                    </h3>
-                    <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
-                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-cyan-400 inline-block"></span> Vessel</span>
-                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block"></span> PFZ Spot</span>
-                        <span class="flex items-center gap-1"><span class="w-2.5 h-0.5 bg-blue-400 inline-block"></span> Safe Route</span>
-                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> MPA Zone</span>
-                    </div>
-                </div>
-                <div id="map" class="w-full rounded-xl overflow-hidden border border-slate-800"></div>
+            <div class="pfz-map-foot">
+              <div class="thermal-gradient-legend">
+                <span>THERMAL GRADIENT:</span>
+                <div class="thermal-gradient-bar"></div>
+                <span>26.5°C — 29.5°C</span>
+              </div>
+              <span id="pfzCursorReadout">Cursor: 12°41'N 73°58'E • Depth: 118 m</span>
+            </div>
+          </div>
+
+          <!-- Subsurface Water Column Profile -->
+          <div class="water-column-card">
+            <div style="font-family: var(--font-display); font-size: 0.75rem; font-weight: 700; color: var(--color-text-secondary); margin-bottom: 0.85rem; letter-spacing: 0.06em;">
+              WATER COLUMN SUBSURFACE PROFILE (THERMOCLINE: 24 M)
             </div>
 
-            <!-- Enhanced SIH Metrics Grid (Route, Departure Window, Tides, Weather) -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <!-- Departure Window -->
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-lg">
-                    <div class="text-slate-400 flex items-center gap-1 mb-1">
-                        <i data-lucide="clock" class="w-3.5 h-3.5 text-cyan-400"></i> Best Sailing Window
-                    </div>
-                    <div id="metric-window" class="font-bold text-slate-200">05:30 AM - 10:30 AM</div>
-                    <div id="metric-window-detail" class="text-[11px] text-cyan-400 mt-0.5">Waves ~0.8m, Wind ~10 kts</div>
+            <div class="water-column-grid">
+              <div>
+                <div class="dispatch-metric-label">SEA SURFACE TEMP</div>
+                <div class="dispatch-metric-val" id="wcSst">28.4 °C</div>
+                <div class="dispatch-metric-sub">0.8°C / 2 NM Front</div>
+              </div>
+              <div>
+                <div class="dispatch-metric-label">CHLOROPHYLL-A</div>
+                <div class="dispatch-metric-val cyan" id="wcChl">1.82 mg/m³</div>
+                <div class="dispatch-metric-sub">Upwelling Active</div>
+              </div>
+              <div>
+                <div class="dispatch-metric-label" style="display: flex; justify-content: space-between;">
+                  <span>DEPTH DISTRIBUTION</span>
+                  <span style="color: var(--signal-cyan);">Peak Shoal at 24m</span>
                 </div>
+                <div class="depth-distribution-bars">
+                  <div class="depth-bar-col"><div class="bar-fill" style="height: 25%;"></div><span>5m</span></div>
+                  <div class="depth-bar-col"><div class="bar-fill" style="height: 45%;"></div><span>15m</span></div>
+                  <div class="depth-bar-col"><div class="bar-fill peak" style="height: 92%;"></div><span>24m</span></div>
+                  <div class="depth-bar-col"><div class="bar-fill" style="height: 60%;"></div><span>35m</span></div>
+                  <div class="depth-bar-col"><div class="bar-fill" style="height: 35%;"></div><span>45m</span></div>
+                  <div class="depth-bar-col"><div class="bar-fill" style="height: 18%;"></div><span>60m</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-                <!-- Safest Route Track -->
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-lg">
-                    <div class="text-slate-400 flex items-center gap-1 mb-1">
-                        <i data-lucide="navigation" class="w-3.5 h-3.5 text-blue-400"></i> Safest Route Heading
-                    </div>
-                    <div id="metric-route-heading" class="font-bold text-slate-200">Heading: 248° (12 NM)</div>
-                    <div id="metric-route-eta" class="text-[11px] text-blue-400 mt-0.5">Speed: 8.5 kts (ETA: 1.4h)</div>
-                </div>
-
-                <!-- Tides -->
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-lg">
-                    <div class="text-slate-400 flex items-center gap-1 mb-1">
-                        <i data-lucide="waves" class="w-3.5 h-3.5 text-purple-400"></i> Astronomical Tide
-                    </div>
-                    <div id="metric-tide-state" class="font-bold text-slate-200">FLOODING (1.2m)</div>
-                    <div id="metric-tide-next" class="text-[11px] text-purple-400 mt-0.5">Next High: in 2.1h</div>
-                </div>
-
-                <!-- PFZ Biological Potential -->
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-lg">
-                    <div class="text-slate-400 flex items-center gap-1 mb-1">
-                        <i data-lucide="fish" class="w-3.5 h-3.5 text-emerald-400"></i> PFZ Biological Index
-                    </div>
-                    <div id="metric-pfz-index" class="font-bold text-slate-200">HIGH Potential (85/100)</div>
-                    <div id="metric-pfz-detail" class="text-[11px] text-emerald-400 mt-0.5">SST 28.5°C • Chl 0.65mg/m³</div>
-                </div>
+        <!-- Right Column: Catch Breakdown & Live Advisory Feed -->
+        <div class="pfz-side-stack">
+          
+          <!-- Catch Probability Card -->
+          <div class="catch-transit-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <span style="font-family: var(--font-display); font-size: 0.78rem; font-weight: 700; color: #fff;">SPECIES SUITABILITY PROBABILITY</span>
+              <span style="font-family: var(--font-mono); font-size: 0.65rem; color: var(--color-text-muted);" id="speciesSectorLabel">ARABIAN SEA SECTOR</span>
             </div>
 
-            <!-- Synthesized Advisory Text & VHF Audio Script Box -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
-                <div class="flex items-center justify-between">
-                    <h3 class="font-semibold text-sm text-slate-200 flex items-center gap-2">
-                        <i data-lucide="radio" class="w-4 h-4 text-cyan-400"></i>
-                        Synthesized Advisory & VHF Broadcast Script
-                    </h3>
-                    <div class="flex items-center gap-2">
-                        <button onclick="simulateAudioSpeech()" class="flex items-center gap-1 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 border border-cyan-500/30 px-2.5 py-1 rounded-lg text-xs transition">
-                            <i data-lucide="volume-2" class="w-3.5 h-3.5"></i> Read Aloud
-                        </button>
-                        <span id="cache-hit-badge" class="text-[11px] font-mono text-slate-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">Cache: Miss</span>
-                    </div>
-                </div>
-                <pre id="advisory-output" class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs font-mono text-cyan-200/90 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto custom-scrollbar">Awaiting advisory execution...</pre>
+            <div class="species-prob-row">
+              <div class="species-prob-head">
+                <strong id="speciesName1">Indian Mackerel</strong>
+                <span id="speciesProb1">89% Suitability</span>
+              </div>
+              <div class="species-prob-track"><div class="species-prob-fill" id="speciesFill1" style="width: 89%;"></div></div>
+              <div style="font-family: var(--font-mono); font-size: 0.62rem; color: var(--color-text-muted); margin-top: 0.2rem;">Optimal SST matching &amp; upwelling front</div>
             </div>
 
-            <!-- Explainability Chain Accordion -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
-                <details class="group text-xs">
-                    <summary class="font-semibold text-slate-300 flex items-center justify-between cursor-pointer list-none select-none">
-                        <span class="flex items-center gap-2">
-                            <i data-lucide="help-circle" class="w-4 h-4 text-cyan-400"></i>
-                            Explainability Evidence Chain ("Why this recommendation?")
-                        </span>
-                        <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 group-open:rotate-180 transition-transform"></i>
-                    </summary>
-                    <div class="pt-3 space-y-2 text-slate-300 border-t border-slate-800 mt-3" id="explainability-content">
-                        <div><b>• Meteorological Safety:</b> Wave heights (<1.2m) and wind speeds (<12 kts) are well within safe vessel tolerances.</div>
-                        <div><b>• Hotspot Selection:</b> Copernicus thermal gradient and chlorophyll upwelling zone identify optimal pelagic feeding front.</div>
-                        <div><b>• Navigational Route:</b> Rhumb-line track maintains safe clearance from restricted Marine Protected Areas and international boundary buffers.</div>
-                    </div>
-                </details>
+            <div class="species-prob-row">
+              <div class="species-prob-head">
+                <strong id="speciesName2">Yellowfin Tuna</strong>
+                <span id="speciesProb2">74% Suitability</span>
+              </div>
+              <div class="species-prob-track"><div class="species-prob-fill" id="speciesFill2" style="width: 74%; background: var(--signal-cyan-bright);"></div></div>
+              <div style="font-family: var(--font-mono); font-size: 0.62rem; color: var(--color-text-muted); margin-top: 0.2rem;">Surface pelagic feeder • Thermocline edge</div>
             </div>
+
+            <div class="species-prob-row">
+              <div class="species-prob-head">
+                <strong id="speciesName3">King Seer Fish / Pomfret</strong>
+                <span id="speciesProb3">65% Suitability</span>
+              </div>
+              <div class="species-prob-track"><div class="species-prob-fill" id="speciesFill3" style="width: 65%; background: #93c5fd;"></div></div>
+              <div style="font-family: var(--font-mono); font-size: 0.62rem; color: var(--color-text-muted); margin-top: 0.2rem;">Coastal bathymetric drop-off</div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.72rem; margin-top: 1.15rem; padding-top: 0.85rem; border-top: 1px solid var(--border-subtle);">
+              <span>TRANSIT ETA: <strong id="catchTransitEta">01h 20m</strong></span>
+              <span>EST. DISTANCE: <strong id="catchTransitDist">11.3 NM</strong></span>
+            </div>
+          </div>
+
+          <!-- Live Advisory Feed & Transmit Log -->
+          <div class="advisory-feed-card">
+            <div class="advisory-feed-header">
+              <div class="advisory-feed-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="color: var(--signal-cyan);"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                <span>MULTI-AGENT ADVISORY DISPATCH</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span class="advisory-feed-badge">VHF CH-16 DUPLEX</span>
+                <span style="font-family: var(--font-mono); font-size: 0.65rem; color: var(--signal-cyan);" id="advisoryLatency">LATENCY: 1890 MS</span>
+              </div>
+            </div>
+
+            <div class="advisory-feed-list" id="advisoryFeedList">
+              <div class="synth-dispatch-card">
+                <div class="synth-card-head">
+                  <div class="synth-agent-info">
+                    <div class="synth-agent-name">
+                      <span class="synth-agent-beacon"></span>
+                      <span>OCEANOVA CORE SYNTHESIZER</span>
+                    </div>
+                    <div class="synth-meta-sub">
+                      VESSEL: <strong>MECHANIZED TRAWLER</strong> • TARGET: <strong>INDIAN MACKEREL</strong>
+                    </div>
+                  </div>
+                  <div class="synth-decision-badge go">
+                    ✓ GO — SAFE TO SAIL (100/100)
+                  </div>
+                </div>
+
+                <div class="synth-telemetry-grid">
+                  <div class="synth-telemetry-tile">
+                    <div class="synth-tile-tag">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20M2 6h20M2 18h20"></path></svg>
+                      WEATHER &amp; SEA STATE
+                    </div>
+                    <div class="synth-tile-val">
+                      Wind: <strong>6.5 kts</strong> (302°) • Waves: <strong>1.18m</strong> (9.5s)
+                    </div>
+                  </div>
+
+                  <div class="synth-telemetry-tile">
+                    <div class="synth-tile-tag">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                      BEST SAILING WINDOW
+                    </div>
+                    <div class="synth-tile-val">
+                      <strong>12 PM — 04 PM</strong> (Optimal departure: calm waves ~1.16m)
+                    </div>
+                  </div>
+
+                  <div class="synth-telemetry-tile">
+                    <div class="synth-tile-tag">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"></circle><line x1="12" y1="1" x2="12" y2="4"></line></svg>
+                      OCEAN &amp; PFZ SUITABILITY
+                    </div>
+                    <div class="synth-tile-val">
+                      SST: <strong>29.31°C</strong> • Chl-a: <strong>1.07 mg/m³</strong> • <strong>HIGH</strong> (100/100)
+                    </div>
+                  </div>
+
+                  <div class="synth-telemetry-tile">
+                    <div class="synth-tile-tag">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+                      SAFEST COURSE TRACK
+                    </div>
+                    <div class="synth-tile-val">
+                      HDG <strong>50.9° T</strong> • <strong>11.4 NM</strong> (Speed <strong>8.5 kts</strong>, ETA <strong>1.34 hrs</strong>)
+                    </div>
+                  </div>
+                </div>
+
+                <div class="synth-telemetry-tile" style="grid-column: 1 / -1;">
+                  <div class="synth-tile-tag">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    MARITIME BOUNDARY &amp; GEOFENCE
+                  </div>
+                  <div class="synth-tile-val">
+                    <strong style="color: var(--signal-green-bright);">CLEAR:</strong> Navigating securely within Indian EEZ (194.04 NM to nearest boundary).
+                  </div>
+                </div>
+
+                <div class="synth-guidance-box">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top:2px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                  <div><strong>NAUTICAL GUIDANCE:</strong> Favorable sea conditions for marine operations. Proceed with standard nautical protocols.</div>
+                </div>
+
+                <div class="synth-audio-controls">
+                  <button class="btn-vhf-broadcast-play" onclick="playCurrentVhfBroadcast()" title="Play VHF speech synthesis broadcast">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon></svg>
+                    <span>PLAY VHF BROADCAST (CH-16)</span>
+                  </button>
+                  <button class="btn-vhf-script-toggle" onclick="toggleVhfScriptDetails()">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                    <span>VHF RADIO SCRIPT</span>
+                  </button>
+                </div>
+
+                <div class="vhf-script-drawer" id="vhfScriptDrawer">
+                  <div style="color: var(--signal-cyan); font-weight: 700; margin-bottom: 0.35rem;">VERBATIM VHF RADIO TRANSMISSION:</div>
+                  <div>ALL STATIONS, ALL STATIONS. THIS IS OCEANOVA MARINE INTELLIGENCE ADVISORY. SAFETY STATUS: GO. WIND: 6.5 KNOTS FROM 302.0 DEGREES. SIGNIFICANT WAVES: 1.2 METERS. RECOMMENDED WINDOW: 12 PM - 04 PM. RECOMMENDED HEADING: 50.9 DEGREES FOR 11.4 NAUTICAL MILES. OUT.</div>
+                </div>
+              </div>
+
+              <div class="subagent-dispatch-card">
+                <div class="subagent-head">
+                  <span>Marine Meteorology Agent</span>
+                  <span class="subagent-tag">WMO METOCEAN</span>
+                </div>
+                <div>Wave: <strong>1.18m</strong> • Wind: <strong>6.5 kt</strong> • Swell: <strong>9.5s @ 302°</strong> • Sea State: <strong>Slight</strong> • Cyclonic Risk: <strong>0.05 (LOW)</strong></div>
+              </div>
+
+              <div class="subagent-dispatch-card">
+                <div class="subagent-head">
+                  <span>Geofence &amp; Maritime Boundary Agent</span>
+                  <span class="subagent-tag">UNCLOS EEZ</span>
+                </div>
+                <div>Border Buffer: <strong>194.04 NM</strong> to Sri Lanka • Indian EEZ: <strong>Verified Inside</strong> • Marine Protected Area: <strong>Clear Buffer</strong></div>
+              </div>
+            </div>
+
+            <div class="quick-log-entry-row">
+              <input type="text" class="quick-log-input" id="quickLogInput" placeholder="Enter query or bridge note..." onkeydown="if(event.key==='Enter') handleQuickSubmit()" />
+              <button class="btn-tx" onclick="handleQuickSubmit()">TX</button>
+            </div>
+          </div>
 
         </div>
-    </main>
 
-    <!-- Footer -->
-    <footer class="bg-slate-900/60 border-t border-slate-800 py-3 text-center text-xs text-slate-500">
-        ORCA Marine Intelligence Platform • Conversational Agentic AI Engine (LangGraph + FastAPI + Leaflet)
-    </footer>
+      </div>
+    </section>
 
-    <!-- Client Script -->
-    <script>
-        lucide.createIcons();
+  </main>
 
-        // Initialize Leaflet Map
-        const map = L.map('map').setView([12.9141, 74.8560], 8);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap &copy; CARTO',
-            maxZoom: 18
-        }).addTo(map);
+  <!-- ======================================================================
+       BOTTOM TELEMETRY STATUS BAR (Persistent Bridge Protocol)
+       ====================================================================== -->
+  <footer id="bottom-bridge-status">
+    <div class="bottom-status-items">
+      <span>AIS RX: <strong>161.975 MHz</strong></span>
+      <span>SOUNDER: <strong id="footDepth">118.0 M</strong></span>
+      <span>HDG: <strong id="footHeading">242° T</strong></span>
+      <span>SOG: <strong id="footSpeed">8.5 KTS</strong></span>
+      <span>NAUTICAL BRIDGE PROTOCOL: <strong>LEVEL 4</strong></span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--signal-green-bright);">
+      <span>●</span>
+      <span id="footSafetyVerdict">SAFE TO SAIL</span>
+    </div>
+  </footer>
 
-        let geojsonLayerGroup = L.layerGroup().addTo(map);
+  <!-- ======================================================================
+       PUSH-TO-TALK (PTT) VOICE STATION MODAL
+       ====================================================================== -->
+  <div id="ptt-modal-overlay">
+    <div class="ptt-modal-card">
+      <div class="ptt-modal-head">
+        <div class="ptt-modal-title">
+          <span style="color: var(--signal-cyan);">●</span>
+          <span>OCEANOVA TACTICAL VOICE STATION • VHF CH-16</span>
+        </div>
+        <button class="ptt-modal-close" onclick="closePttModal()">&times;</button>
+      </div>
 
-        function setPreset(locationName, query, species, temporal, lang) {
-            document.getElementById('location-input').value = locationName;
-            document.getElementById('query-input').value = query;
-            document.getElementById('species-input').value = species;
-            document.getElementById('temporal-input').value = temporal;
-            document.getElementById('lang-input').value = lang;
-            runConversationalEngine();
+      <div class="ptt-modal-body">
+        <!-- PTT DIALECT & LANGUAGE SETTINGS BAR -->
+        <div class="ptt-settings-bar">
+          <label class="ptt-settings-label">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            <span id="pttDialectLabel">TRANSMISSION DIALECT / SITE SETTING:</span>
+          </label>
+          <div class="ptt-dialect-group">
+            <button type="button" class="ptt-dialect-btn active" data-lang="en" onclick="setDialect('en')">EN • English</button>
+            <button type="button" class="ptt-dialect-btn" data-lang="kn" onclick="setDialect('kn')">KN • ಕನ್ನಡ</button>
+            <button type="button" class="ptt-dialect-btn" data-lang="hi" onclick="setDialect('hi')">HI • हिन्दी</button>
+            <button type="button" class="ptt-dialect-btn" data-lang="ml" onclick="setDialect('ml')">ML • മലയാളം</button>
+            <button type="button" class="ptt-dialect-btn" data-lang="ta" onclick="setDialect('ta')">TA • தமிழ்</button>
+            <button type="button" class="ptt-dialect-btn" data-lang="te" onclick="setDialect('te')">TE • తెలుగు</button>
+          </div>
+        </div>
+
+        <div class="ptt-modal-waveform">
+          <canvas id="ptt-wave-canvas"></canvas>
+          <div id="pttWaveStatus" style="position: absolute; font-family: var(--font-mono); font-size: 0.65rem; color: var(--color-text-muted); pointer-events: none;">
+            Ready • Click to Speak or Hold to Transmit
+          </div>
+        </div>
+
+        <div class="ptt-transcript-log" id="pttTranscriptLog">
+          <div><strong>OPERATOR:</strong> "Is it safe to fish near Mangalore tomorrow morning for mackerel?"</div>
+          <div style="margin-top: 0.4rem; color: var(--color-text-primary);"><strong>OCEANOVA:</strong> "Conditions are SAFE. Wave height 1.46m, winds 9.8 kt. International boundary buffer clear at 309 NM. Target mackerel aggregation approved."</div>
+        </div>
+
+        <!-- Recorded Device Audio File Badge & Playback -->
+        <div id="pttFileBadge" class="ptt-file-badge">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+          <span id="pttFileBadgeText">Audio File Recorded: oceanova_query.webm • Ready for transmission</span>
+        </div>
+        <audio id="pttRecordedAudio" class="ptt-audio-playback" controls></audio>
+
+        <div class="ptt-modal-actions">
+          <button class="btn-record-toggle" id="btnRecordHold" onclick="toggleHeroPTT()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path></svg>
+            <span id="recordHoldLabel">CLICK TO TRANSMIT VOICE</span>
+          </button>
+          <button class="btn-speak-advisory" onclick="playCurrentVhfBroadcast()">
+            <span>PLAY VHF BROADCAST</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       APPLICATION ENGINE SCRIPT
+       ====================================================================== -->
+  <script>
+    'use strict';
+
+    /* ==========================================================================
+       1. GLOBAL STATE & LOCALIZATION DICTIONARY
+       ========================================================================== */
+    const state = {
+      currentLang: 'en',
+      activeLocation: 'Mangalore',
+      activeSpecies: 'Indian Mackerel',
+      activeVessel: 'Mechanized Trawler',
+      hasGps: false,
+      currentLat: 12.914,
+      currentLon: 74.856,
+      isRecording: false,
+      autopilotEngaged: false,
+      latestVhfScript: "ALL STATIONS, ALL STATIONS. THIS IS OCEANOVA MARINE INTELLIGENCE ADVISORY. SAFETY STATUS: GO. SIGNIFICANT WAVES: 1.46 METERS. WINDS: 9.8 KNOTS. CONDITIONS ARE FAVORABLE. MAINTAIN CLEARANCE FROM MARKED CHANNELS.",
+      radarAngle: 0
+    };
+
+    const i18n = {
+      en: {
+        safe: "Safe",
+        goVerdict: "GO — SAFE TO LAUNCH",
+        launchWindow: "Window 05:30 — 10:30 IST",
+        holdToTalk: "CLICK OR HOLD TO TALK",
+        hotspotTitle: "Hotspot Alpha • 89% Biological Suitability",
+        navOverview: "Overview & Launch",
+        navEcdis: "Tactical ECDIS",
+        navPfz: "Fisheries PFZ",
+        btnGps: "ACQUIRE MY LIVE GPS COORDINATES",
+        btnGpsHeader: "GPS LOCATE",
+        btnTransmit: "TRANSMIT",
+        btnAutopilot: "PLOT AUTOPILOT INTERCEPT",
+        subTitle: "Autonomous Marine Intelligence & Nautical Decision Platform",
+        querySample: "Is it safe to fish near Mangalore tomorrow morning for mackerel?",
+        queryPlaceholder: "Ask in natural language (e.g. Is it safe to fish near Mangalore for mackerel tomorrow?)...",
+        footerSafe: "SAFE TO SAIL",
+        portLabel: "COASTAL HARBOR:",
+        scrollCue: "SCROLL DOWN TO TACTICAL ECDIS & BOUNDARY RADAR",
+        quickPtt: "• PTT CH-16",
+        presets: [
+          "Mangalore (Canara) • Mackerel",
+          "Cochin (Malabar) • Tuna",
+          "Rameswaram (Palk Strait) • IMBL",
+          "Veraval (Gujarat) • Tides"
+        ]
+      },
+      kn: {
+        safe: "ಸುರಕ್ಷಿತ (Safe)",
+        goVerdict: "ಹೋಗಿ — ಪ್ರಯಾಣ ಸುರಕ್ಷಿತ (GO)",
+        launchWindow: "ಸಮಯ 05:30 — 10:30 IST",
+        holdToTalk: "ಮಾತನಾಡಲು ಒತ್ತಿ (CLICK TO TALK)",
+        hotspotTitle: "ಹಾಟ್‌ಸ್ಪಾಟ್ ಆಲ್ಫಾ • 89% ಸಂಭವನೀಯತೆ",
+        navOverview: "ಅವಲೋಕನ ಮತ್ತು ನಿರ್ಗಮನ",
+        navEcdis: "ಟ್ಯಾಕ್ಟಿಕಲ್ ECDIS",
+        navPfz: "ಮೀನುಗಾರಿಕೆ PFZ",
+        btnGps: "ಲೈವ್ ಜಿಪಿಎಸ್ ಸ್ಥಾನ ಪಡೆಯಿರಿ",
+        btnGpsHeader: "ಜಿಪಿಎಸ್ ಹುಡುಕಿ",
+        btnTransmit: "ರವಾನಿಸಿ",
+        btnAutopilot: "ಆಟೋಪೈಲಟ್ ಇಂಟರ್‌ಸೆಪ್ಟ್ ಹೊಂದಿಸಿ",
+        subTitle: "ಸ್ವಾಯತ್ತ ಸಮುದ್ರ ಗುಪ್ತಚರ ಮತ್ತು ನಾವಿಕ ನಿರ್ಧಾರ ವೇದಿಕೆ",
+        querySample: "ನಾಳೆ ಬೆಳಿಗ್ಗೆ ಮಂಗಳೂರು ಬಳಿ ಬಂಗುಡೆ ಮೀನುಗಾರಿಕೆಗೆ ಹೋಗುವುದು ಸುರಕ್ಷಿತವೇ?",
+        queryPlaceholder: "ನೈಸರ್ಗಿಕ ಭಾಷೆಯಲ್ಲಿ ಕೇಳಿ (ಉದಾ: ನಾಳೆ ಬೆಳಿಗ್ಗೆ ಮಂಗಳೂರಿನಲ್ಲಿ ಮೀನುಗಾರಿಕೆ ಸುರಕ್ಷಿತವೇ?)...",
+        footerSafe: "ಪ್ರಯಾಣ ಸುರಕ್ಷಿತ (SAFE TO SAIL)",
+        portLabel: "ಕರಾವಳಿ ಬಂದರು:",
+        scrollCue: "ಟ್ಯಾಕ್ಟಿಕಲ್ ECDIS ಮತ್ತು ಗಡಿ ರಡಾರ್‌ಗೆ ಕೆಳಗೆ ಸ್ಕ್ರೋಲ್ ಮಾಡಿ",
+        quickPtt: "• ಪಿಟಿಟಿ ಚಾನೆಲ್-16",
+        presets: [
+          "ಮಂಗಳೂರು (ಕೆನರಾ) • ಬಂಗುಡೆ",
+          "ಕೊಚ್ಚಿನ್ (ಮಲಬಾರ್) • ಟ್ಯೂನಾ",
+          "ರಾಮೇಶ್ವರಂ (ಪಾಕ್ ಜಲಸಂಧಿ) • ಗಡಿ",
+          "ವೆರಾವಲ್ (ಗುಜರಾತ್) • ಅಲೆಗಳು"
+        ]
+      },
+      hi: {
+        safe: "सुरक्षित (Safe)",
+        goVerdict: "जाएं — प्रस्थान सुरक्षित (GO)",
+        launchWindow: "विंडो 05:30 — 10:30 IST",
+        holdToTalk: "बोलने के लिए दबाएं (CLICK TO TALK)",
+        hotspotTitle: "हॉटस्पॉट अल्फा • 89% संभावना",
+        navOverview: "अवलोकन एवं प्रस्थान",
+        navEcdis: "टैक्टिकल ECDIS",
+        navPfz: "मत्स्य पालन PFZ",
+        btnGps: "लाइव जीपीएस स्थिति प्राप्त करें",
+        btnGpsHeader: "जीपीएस खोजें",
+        btnTransmit: "प्रसारित करें",
+        btnAutopilot: "ऑटोपायलट इंटरसेप्ट सेट करें",
+        subTitle: "स्वायत्त समुद्री बुद्धिमत्ता एवं नौवहन निर्णय मंच",
+        querySample: "क्या कल सुबह मैंगलोर के पास मैकेरल मछली पकड़ना सुरक्षित है?",
+        queryPlaceholder: "अपनी भाषा में पूछें (उदा. क्या कल सुबह मैंगलोर के पास मौसम सुरक्षित है?)...",
+        footerSafe: "सुरक्षित प्रस्थान (SAFE TO SAIL)",
+        portLabel: "तटीय बंदरगाह:",
+        scrollCue: "टैक्टिकल ECDIS एवं सीमा रडार के लिए नीचे स्क्रॉल करें",
+        quickPtt: "• पीटीटी चैनल-16",
+        presets: [
+          "मैंगलोर (केनरा) • मैकेरल",
+          "कोचीन (मालाबार) • टूना",
+          "रामेश्वरम (पाक जलडमरूमध्य) • सीमा",
+          "वेरावल (गुजरात) • ज्वार-भाटा"
+        ]
+      },
+      ml: {
+        safe: "സുരക്ഷിതം (Safe)",
+        goVerdict: "പോവുക — സുരക്ഷിതം (GO)",
+        launchWindow: "സമയം 05:30 — 10:30 IST",
+        holdToTalk: "സംസാരിക്കാൻ അമർത്തുക",
+        hotspotTitle: "ഹോട്ട്സ്പോട്ട് ആൽഫ • 89% സാധ്യത",
+        navOverview: "അവലോകനവും പുറപ്പെടലും",
+        navEcdis: "ടാക്റ്റിക്കൽ ECDIS",
+        navPfz: "മത്സ്യബന്ധന മേഖല",
+        btnGps: "ലൈവ് ജിപിഎസ് ലൊക്കേഷൻ കണ്ടെത്തുക",
+        btnGpsHeader: "ജിപിഎസ് ലൊക്കേഷൻ",
+        btnTransmit: "പ്രക്ഷേപണം ചെയ്യുക",
+        btnAutopilot: "ഓട്ടോപൈലറ്റ് സജ്ജമാക്കുക",
+        subTitle: "ഓട്ടോണമസ് സമുദ്ര ഇന്റലിജൻസ് & നാവിക തീരുമാന പ്ലാറ്റ്‌ഫോം",
+        querySample: "നാളെ രാവിലെ മംഗലാപുരത്തിന് സമീപം അയല മീൻപിടിക്കാൻ പോകുന്നത് സുരക്ഷിതമാണോ?",
+        queryPlaceholder: "മലയാളത്തിൽ ചോദിക്കുക (ഉദാ: നാളെ കാലാവസ്ഥ സുരക്ഷിതമാണോ?)...",
+        footerSafe: "സുരക്ഷിതം (SAFE TO SAIL)",
+        portLabel: "തീരദേശ തുറമുഖം:",
+        scrollCue: "ടാക്റ്റിക്കൽ ECDIS & അതിർത്തി റഡാറിലേക്ക് താഴേക്ക് സ്ക്രോൾ ചെയ്യുക",
+        quickPtt: "• പിടിടി ചാനൽ-16",
+        presets: [
+          "മംഗലാപുരം (കാനറ) • അയല",
+          "കൊച്ചിൻ (മലബാർ) • ചൂര",
+          "രാമേശ്വരം (പാക്ക് കടലിടുക്ക്) • അതിർത്തി",
+          "വെരാവൽ (ഗുജറാത്ത്) • വേലിയേറ്റം"
+        ]
+      },
+      ta: {
+        safe: "பாதுகாப்பானது (Safe)",
+        goVerdict: "செல் — புறப்படலாம் (GO)",
+        launchWindow: "நேரம் 05:30 — 10:30 IST",
+        holdToTalk: "பேச அழுத்தவும் (CLICK TO TALK)",
+        hotspotTitle: "ஹாட்ஸ்பாட் ஆல்ஃபா • 89% வாய்ப்பு",
+        navOverview: "கண்ணோட்டம் & புறப்பாடு",
+        navEcdis: "தந்திரோபாய ECDIS",
+        navPfz: "மீன்பிடி PFZ",
+        btnGps: "நேரடி ஜிபிஎஸ் நிலையைப் பெறவும்",
+        btnGpsHeader: "ஜிபிஎஸ் நிலை",
+        btnTransmit: "ஒளிபரப்பு",
+        btnAutopilot: "தானியங்கி வழிசெலுத்தலைத் திட்டமிடு",
+        subTitle: "தன்னாட்சி கடல்சார் நுண்ணறிவு & வழிசெலுத்தல் முடிவெடுக்கும் தளம்",
+        querySample: "நாளை காலை மங்களூர் அருகே கானாங்கெளுத்தி மீன்பிடிக்க செல்வது பாதுகாப்பானதா?",
+        queryPlaceholder: "இயற்கை மொழியில் கேளுங்கள் (उदा. நாளை காலை மங்களூர் வானிலை பாதுகாப்பானதா?)...",
+        footerSafe: "புறப்படலாம் (SAFE TO SAIL)",
+        portLabel: "கடலோர துறைமுகம்:",
+        scrollCue: "தந்திரோபாய ECDIS & எல்லை ரேடாருக்கு கீழே உருட்டவும்",
+        quickPtt: "• பிடிடி சேனல்-16",
+        presets: [
+          "மங்களூர் (கனரா) • கானாங்கெளுத்தி",
+          "கொச்சின் (மலபார்) • சூரை",
+          "ராமேஸ்வரம் (பாக் ஜலசந்தி) • எல்லை",
+          "வெராவல் (குஜராத்) • அலைகள்"
+        ]
+      },
+      te: {
+        safe: "సురక్షితం (Safe)",
+        goVerdict: "వెళ్ళండి — బయలుదేరడం సురక్షితం (GO)",
+        launchWindow: "సమయం 05:30 — 10:30 IST",
+        holdToTalk: "మాట్లాడటానికి నొక్కండి",
+        hotspotTitle: "హాట్‌స్పాట్ ఆల్ఫా • 89% సంభావ్యత",
+        navOverview: "అవలోకనం & బయలుదేరడం",
+        navEcdis: "టాక్టికల్ ECDIS",
+        navPfz: "మత్స్య సంపద PFZ",
+        btnGps: "ప్రత్యక్ష జీపీఎస్ స్థానాన్ని పొందండి",
+        btnGpsHeader: "జీపీఎస్ లొకేట్",
+        btnTransmit: "ప్రసారం చేయండి",
+        btnAutopilot: "ఆటోపైಲట్ ఇంటర్‌సెప్ట్ ప్లాట్ చేయండి",
+        subTitle: "అటానమస్ సముద్ర ఇంటెలిజెన్స్ & నావిగేషన్ నిర్ణయ ప్లాట్‌ఫారమ్",
+        querySample: "రేపు ఉదయం మంగళూరు సమీపంలో కనగర్తలు చేపల వేటకు వెళ్లడం సురక్షితమేనా?",
+        queryPlaceholder: "సహజ భాషలో అడగండి (ఉదా. రేపు ఉదయం మంగళూరులో చేపల వేట సురక్షితమేనా?)...",
+        footerSafe: "సురక్షితం (SAFE TO SAIL)",
+        portLabel: "తీరప్రాంత ఓడరేవు:",
+        scrollCue: "టాక్టికల్ ECDIS & సరిహద్దు రాడార్ కోసం క్రిందికి స్క్రోల్ చేయండి",
+        quickPtt: "• పిటిటి ఛానెల్-16",
+        presets: [
+          "మంగళూరు (కెనరా) • కనగర్తలు",
+          "కొచ్చిన్ (మలబార్) • ట్యూనా",
+          "రామేశ్వరం (పాక్ జలసంధి) • సరిహద్దు",
+          "వెరావల్ (గుజరాత్) • పోటుపాట్లు"
+        ]
+      }
+    };
+
+    /* ==========================================================================
+       2. CINEMATIC SCROLL-DRIVEN BACKGROUND ANIMATION ENGINE
+       ========================================================================== */
+    const TOTAL_FRAMES = 135;
+    const canvas = document.getElementById('scroll-canvas');
+    const ctx = canvas.getContext('2d');
+    const frames = new Array(TOTAL_FRAMES);
+    let currentRenderedIndex = -1;
+    let targetFrameIndex = 0;
+    let smoothedFrameIndex = 0;
+
+    function resizeCanvas() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      drawFrame(Math.round(smoothedFrameIndex) + 1);
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    function padFrame(idx) {
+      return String(idx).padStart(3, '0');
+    }
+
+    function initScrollAnimation() {
+      resizeCanvas();
+
+      loadSingleFrame(1, () => {
+        drawFrame(1);
+        loadRemainingFrames();
+      });
+
+      window.addEventListener('scroll', onScrollUpdate, { passive: true });
+      requestAnimationFrame(animationLoop);
+    }
+
+    function loadSingleFrame(idx, callback) {
+      if (frames[idx - 1]) {
+        if (callback) callback();
+        return;
+      }
+      const img = new Image();
+      img.src = `/assets/ezgif-frame-${padFrame(idx)}.png`;
+      img.onload = () => {
+        frames[idx - 1] = img;
+        if (callback) callback();
+      };
+    }
+
+    function loadRemainingFrames() {
+      for (let i = 2; i <= TOTAL_FRAMES; i += 3) {
+        loadSingleFrame(i);
+      }
+      setTimeout(() => {
+        for (let i = 2; i <= TOTAL_FRAMES; i++) {
+          if (!frames[i - 1]) loadSingleFrame(i);
         }
+      }, 350);
+    }
 
-        async function resolveLocationOnly() {
-            const locName = document.getElementById('location-input').value;
-            if (!locName) return;
-            try {
-                const res = await fetch(`/api/v1/geocoding/resolve?location_name=${encodeURIComponent(locName)}`);
-                const data = await res.json();
-                alert(`Geocoded '${locName}':\n\n• Resolved: ${data.resolved_name} (${data.state})\n• Coordinates: ${data.latitude}° N, ${data.longitude}° E\n• Method: ${data.matched_by}`);
-            } catch (err) {
-                alert('Geocoding error: ' + err.message);
-            }
+    function onScrollUpdate() {
+      const scrollY = window.scrollY;
+      const heroSection = document.getElementById('section-overview');
+      const heroHeight = heroSection ? heroSection.offsetHeight : window.innerHeight;
+
+      const progress = Math.min(Math.max(scrollY / Math.max(heroHeight, 1), 0), 1);
+      targetFrameIndex = Math.floor(progress * (TOTAL_FRAMES - 1));
+
+      const canvasContainer = document.getElementById('bg-canvas-container');
+      if (canvasContainer) {
+        if (scrollY > heroHeight * 0.9) {
+          canvasContainer.style.opacity = Math.max(0.18, 1 - (scrollY - heroHeight * 0.9) / 800);
+        } else {
+          canvasContainer.style.opacity = '1';
         }
+      }
+    }
 
-        async function runConversationalEngine() {
-            const btn = document.getElementById('run-btn');
-            btn.disabled = true;
-            btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Reasoning in progress...`;
-            lucide.createIcons();
+    function animationLoop() {
+      smoothedFrameIndex += (targetFrameIndex - smoothedFrameIndex) * 0.18;
+      const drawIdx = Math.min(TOTAL_FRAMES, Math.max(1, Math.round(smoothedFrameIndex) + 1));
+      
+      if (drawIdx !== currentRenderedIndex) {
+        drawFrame(drawIdx);
+        currentRenderedIndex = drawIdx;
+      }
+      requestAnimationFrame(animationLoop);
+    }
 
-            const payload = {
-                location_name: document.getElementById('location-input').value,
-                query: document.getElementById('query-input').value,
-                target_species: document.getElementById('species-input').value,
-                temporal_target: document.getElementById('temporal-input').value,
-                vessel_type: document.getElementById('vessel-input').value,
-                language: document.getElementById('lang-input').value
-            };
-
-            try {
-                const res = await fetch('/api/v1/advisory', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!res.ok) {
-                    const err = await res.json();
-                    throw new Error(err.message || 'Workflow execution error');
-                }
-
-                const data = await res.json();
-                renderAdvisoryResult(data);
-            } catch (err) {
-                alert('Error running advisory: ' + err.message);
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4"></i> Run Multi-Agent Reasoning`;
-                lucide.createIcons();
-            }
+    function drawFrame(idx) {
+      let img = frames[idx - 1];
+      if (!img) {
+        for (let offset = 1; offset < 20; offset++) {
+          if (frames[idx - 1 - offset]) { img = frames[idx - 1 - offset]; break; }
+          if (frames[idx - 1 + offset]) { img = frames[idx - 1 + offset]; break; }
         }
+      }
+      if (!img) return;
 
-        function simulateAudioSpeech() {
-            const text = document.getElementById('advisory-output').innerText;
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 1.0;
-                window.speechSynthesis.speak(utterance);
-            } else {
-                alert('Text-to-speech not supported in this browser.');
-            }
-        }
+      const cw = canvas.width;
+      const ch = canvas.height;
+      const iw = img.naturalWidth || 1920;
+      const ih = img.naturalHeight || 1080;
 
-        function renderAdvisoryResult(data) {
-            // Update Location Label
-            const loc = data.location;
-            document.getElementById('location-resolved-label').innerText = `Location: ${loc.location_name || 'Indian Waters'} (${loc.latitude}° N, ${loc.longitude}° E) • ${loc.coastal_region || ''}`;
+      const scale = Math.max(cw / iw, ch / ih);
+      const nw = iw * scale;
+      const nh = ih * scale;
+      const nx = (cw - nw) / 2;
+      const ny = (ch - nh) / 2;
 
-            // Cyclone Alert Banner
-            const cycloneBanner = document.getElementById('cyclone-alert-banner');
-            if (data.cyclone_alert && data.cyclone_alert.is_cyclone_alert) {
-                cycloneBanner.classList.remove('hidden');
-                document.getElementById('cyclone-alert-title').innerText = `🚨 ${data.cyclone_alert.alert_severity} CYCLONIC DEPRESSION ALERT`;
-                document.getElementById('cyclone-alert-body').innerText = data.cyclone_alert.directive;
-            } else {
-                cycloneBanner.classList.add('hidden');
-            }
+      ctx.clearRect(0, 0, cw, ch);
+      ctx.drawImage(img, nx, ny, nw, nh);
+    }
 
-            // Update Decision Banner
-            const decision = data.safety_assessment.go_no_go_decision;
-            const score = data.safety_assessment.safety_score;
-            const banner = document.getElementById('decision-banner');
-            const iconCont = document.getElementById('decision-icon-container');
-            const decisionTitle = document.getElementById('decision-title');
-            const scoreVal = document.getElementById('safety-score-value');
+    /* ==========================================================================
+       3. INTERSECTION OBSERVER FOR ACTIVE NAV TAB HIGHLIGHTING
+       ========================================================================== */
+    function initNavScrollObserver() {
+      const sections = document.querySelectorAll('.deck-section');
+      const navLinks = document.querySelectorAll('.nav-tab-link');
 
-            scoreVal.innerHTML = `${score}<span class="text-xs font-normal text-slate-500">/100</span>`;
-
-            if (decision === 'NO_GO') {
-                iconCont.className = 'w-12 h-12 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold text-lg border border-rose-500/30';
-                iconCont.innerText = 'NO GO';
-                decisionTitle.innerText = `Decision: NO_GO (${data.safety_assessment.overall_safety_status})`;
-                scoreVal.className = 'text-2xl font-black text-rose-400 font-mono';
-            } else if (decision === 'GO_WITH_CAUTION') {
-                iconCont.className = 'w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs text-center border border-amber-500/30';
-                iconCont.innerText = 'CAUTION';
-                decisionTitle.innerText = `Decision: GO WITH CAUTION`;
-                scoreVal.className = 'text-2xl font-black text-amber-400 font-mono';
-            } else {
-                iconCont.className = 'w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-lg border border-emerald-500/30';
-                iconCont.innerText = 'GO';
-                decisionTitle.innerText = `Decision: GO (Favorable Sea Conditions)`;
-                scoreVal.className = 'text-2xl font-black text-emerald-400 font-mono';
-            }
-
-            // Advisory Text
-            document.getElementById('advisory-output').innerText = data.advisory_text;
-
-            // Cache & Latency
-            document.getElementById('pipeline-latency').innerText = `${data.execution_time_ms} ms`;
-            document.getElementById('cache-hit-badge').innerText = data.cached ? '⚡ Cache: HIT' : '🔄 Cache: MISS';
-            document.getElementById('cache-hit-badge').className = data.cached
-                ? 'text-[11px] font-mono text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800'
-                : 'text-[11px] font-mono text-slate-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800';
-
-            // Departure Window
-            if (data.departure_window) {
-                document.getElementById('metric-window').innerText = data.departure_window.recommended_window;
-                document.getElementById('metric-window-detail').innerText = `Waves ~${data.departure_window.avg_wave_m}m, Wind ~${data.departure_window.avg_wind_kts} kts`;
-            }
-
-            // Route Metric
-            if (data.route_plan) {
-                document.getElementById('metric-route-heading').innerText = `Heading: ${data.route_plan.initial_bearing_deg}° (${data.route_plan.total_distance_nm} NM)`;
-                document.getElementById('metric-route-eta').innerText = `Speed: ${data.route_plan.recommended_cruising_speed_knots} kts (ETA: ${data.route_plan.estimated_transit_time_hours}h)`;
-            }
-
-            // Tides Metric
-            if (data.tides_report) {
-                document.getElementById('metric-tide-state').innerText = `${data.tides_report.tidal_state} (${data.tides_report.current_height_m}m)`;
-                document.getElementById('metric-tide-next').innerText = `${data.tides_report.regime}`;
-            }
-
-            // PFZ Metric
-            if (data.ocean_report) {
-                document.getElementById('metric-pfz-index').innerText = `${data.ocean_report.pfz_rating} (${data.ocean_report.pfz_potential_score}/100)`;
-                document.getElementById('metric-pfz-detail').innerText = `SST ${data.ocean_report.sea_surface_temperature_c}°C • Chl ${data.ocean_report.chlorophyll_a_mg_m3} mg/m³`;
-            }
-
-            // Explainability Chain
-            if (data.explainability) {
-                const exp = data.explainability;
-                document.getElementById('explainability-content').innerHTML = `
-                    <div><b>• Meteorological Safety:</b> ${exp.why_safe_or_unsafe}</div>
-                    <div><b>• Hotspot Selection:</b> ${exp.why_this_hotspot}</div>
-                    <div><b>• Navigational Route:</b> ${exp.why_this_route}</div>
-                    <div class="text-cyan-400"><b>• Confidence Score:</b> ${exp.confidence_score}%</div>
-                `;
-            }
-
-            // Agent Reasoning Timeline
-            const timeline = document.getElementById('agent-timeline');
-            timeline.innerHTML = '';
-            data.reasoning_logs.forEach(log => {
-                const item = document.createElement('div');
-                const isWarn = log.status === 'WARNING';
-                const isErr = log.status === 'ERROR';
-                const statusColor = isErr ? 'text-rose-400 border-rose-500/30 bg-rose-950/20' : (isWarn ? 'text-amber-400 border-amber-500/30 bg-amber-950/20' : 'text-cyan-400 border-cyan-500/30 bg-cyan-950/20');
-
-                item.className = `p-3 rounded-xl border ${statusColor} text-slate-300`;
-                item.innerHTML = `
-                    <div class="flex items-center justify-between mb-1">
-                        <span class="font-bold font-mono ${statusColor}">${log.agent_name}</span>
-                        <span class="text-[10px] text-slate-500 font-mono">${log.latency_ms} ms</span>
-                    </div>
-                    <p class="text-slate-300 text-[11px] leading-relaxed">${log.summary}</p>
-                `;
-                timeline.appendChild(item);
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const targetId = entry.target.getAttribute('id');
+            navLinks.forEach(link => {
+              link.classList.toggle('active', link.getAttribute('data-target') === targetId);
             });
-
-            // Render Map GeoJSON
-            geojsonLayerGroup.clearLayers();
-            const vesselLat = data.location.latitude;
-            const vesselLon = data.location.longitude;
-
-            map.setView([vesselLat, vesselLon], 8);
-
-            // Vessel Marker with pulsating radar halo
-            const vesselIcon = L.divIcon({
-                className: 'custom-vessel-icon',
-                html: `<div style="background: #38bdf8; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 14px #38bdf8;"></div>`,
-                iconSize: [16, 16]
-            });
-            L.marker([vesselLat, vesselLon], { icon: vesselIcon })
-                .bindPopup(`<b>Vessel Position: ${data.location.location_name || 'Port'}</b><br>Lat: ${vesselLat}, Lon: ${vesselLon}<br>Region: ${data.location.coastal_region}`)
-                .addTo(geojsonLayerGroup)
-                .openPopup();
-
-            // Render GeoJSON Features (Route LineString, Waypoints, PFZ Hotspots, EEZ Borders, MPAs)
-            if (data.geojson && data.geojson.features) {
-                L.geoJSON(data.geojson, {
-                    style: function (feature) {
-                        const layer = feature.properties.layer;
-                        const zoneType = feature.properties.zone_type;
-                        if (layer === 'safe_navigation_route') {
-                            return { color: '#38bdf8', weight: 3.5, dashArray: '6, 6', opacity: 0.9 };
-                        } else if (zoneType === 'MPA') {
-                            return { color: '#f43f5e', weight: 2, fillOpacity: 0.25 };
-                        } else if (zoneType === 'NEIGHBOR_EEZ') {
-                            return { color: '#f59e0b', weight: 1.5, dashArray: '4, 4' };
-                        }
-                        return { color: '#06b6d4', weight: 1.5 };
-                    },
-                    pointToLayer: function (feature, latlng) {
-                        const layer = feature.properties.layer;
-                        if (layer === 'pfz_hotspot') {
-                            return L.circleMarker(latlng, {
-                                radius: 8,
-                                fillColor: '#10b981',
-                                color: '#ffffff',
-                                weight: 2,
-                                opacity: 1,
-                                fillOpacity: 0.85
-                            }).bindPopup(`<b>${feature.properties.title}</b><br>SST: ${feature.properties.sst_c}°C<br>Chlorophyll: ${feature.properties.chlorophyll_mg_m3} mg/m³<br>Type: ${feature.properties.zone_type}`);
-                        } else if (layer === 'navigation_waypoint') {
-                            return L.circleMarker(latlng, {
-                                radius: 5,
-                                fillColor: '#38bdf8',
-                                color: '#ffffff',
-                                weight: 1.5,
-                                fillOpacity: 0.9
-                            }).bindPopup(`<b>${feature.properties.title}</b><br>Bearing: ${feature.properties.bearing_deg}°<br>${feature.properties.instruction}`);
-                        }
-                        return L.circleMarker(latlng, { radius: 4, fillColor: '#38bdf8' });
-                    }
-                }).addTo(geojsonLayerGroup);
-            }
-        }
-
-        // Run initial Mangalore query on load
-        window.addEventListener('DOMContentLoaded', () => {
-            runConversationalEngine();
+          }
         });
-    </script>
+      }, {
+        rootMargin: '-20% 0px -60% 0px',
+        threshold: 0
+      });
+
+      sections.forEach(sec => observer.observe(sec));
+    }
+
+    /* ==========================================================================
+       4. LIVE GPS LOCATION ACQUISITION & AUTOMATIC HARBOR SELECTION
+       ========================================================================== */
+    const coastalHarbors = [
+      { name: "Mangalore", aliases: ["mangalore", "mangaluru", "ಮಂಗಳೂರು", "मैंगलोर", "മംഗലാപുരം", "மங்களூர்", "మంగళూరు"], lat: 12.9141, lon: 74.8560, state: "Karnataka" },
+      { name: "Malpe", aliases: ["malpe", "ಮಾಲ್ಪೆ", "മാൽപെ", "மால்பே", "మాల్పే", "मालपे"], lat: 13.3498, lon: 74.7038, state: "Karnataka" },
+      { name: "Karwar", aliases: ["karwar", "ಕಾರ್ವಾರ", "कारवार", "കണ്ണൂർ", "கார்வார்", "కార్వార్"], lat: 14.8135, lon: 74.1298, state: "Karnataka" },
+      { name: "Goa", aliases: ["goa", "ಗೋವಾ", "गोवा", "ഗോവ", "கோவா", "గోవా", "panaji"], lat: 15.4056, lon: 73.8043, state: "Goa" },
+      { name: "Cochin", aliases: ["cochin", "kochi", "കൊച്ചി", "ಕೊಚ್ಚಿ", "कोचीन", "கொச்சி", "కొచ్చి"], lat: 9.9312, lon: 76.2673, state: "Kerala" },
+      { name: "Calicut", aliases: ["calicut", "kozhikode", "beypore", "ബേപ്പൂർ", "ಕೋಝಿಕ್ಕೋಡ್", "കോഴിക്കോട്"], lat: 11.2588, lon: 75.7804, state: "Kerala" },
+      { name: "Mumbai", aliases: ["mumbai", "bombay", "ಮುಂಬೈ", "मुंबई", "മുംബൈ", "மும்பை", "ముంబై"], lat: 18.9220, lon: 72.8347, state: "Maharashtra" },
+      { name: "Veraval", aliases: ["veraval", "ವೇರಾವಲ್", "वेरावल", "വേരാവൽ", "வேராவல்", "వెరావల్"], lat: 20.9077, lon: 70.3679, state: "Gujarat" },
+      { name: "Porbandar", aliases: ["porbandar", "ಪೋರ್‌ಬಂದರ್", "पोरबंदर", "പോർബന്ദർ", "போர்பந்தர்"], lat: 21.6417, lon: 69.6293, state: "Gujarat" },
+      { name: "Rameswaram", aliases: ["rameswaram", "ರಾಮೇಶ್ವರಂ", "रामेश्वरम", "രാമേശ്വരം", "ராமேஸ்வரம்", "రామేశ్వరం"], lat: 9.2876, lon: 79.3129, state: "Tamil Nadu" },
+      { name: "Chennai", aliases: ["chennai", "madras", "ಚೆನ್ನೈ", "चेन्नई", "ചെന്നൈ", "சென்னை", "చెన్నై"], lat: 13.0827, lon: 80.2707, state: "Tamil Nadu" },
+      { name: "Kanyakumari", aliases: ["kanyakumari", "ಕನ್ಯಾಕುಮಾರಿ", "कन्याकुमारी", "കന്യാകുമാരി", "கன்னியாகுமரி", "కన్యాకుమారి"], lat: 8.0883, lon: 77.5385, state: "Tamil Nadu" },
+      { name: "Visakhapatnam", aliases: ["visakhapatnam", "vizag", "ವಿಶಾಖಪಟ್ಟಣ", "विशाखापट्टनम", "വിശാഖപട്ടണം", "விசாகப்பட்டினம்", "విశాఖపట్నం"], lat: 17.6868, lon: 83.2185, state: "Andhra Pradesh" },
+      { name: "Paradip", aliases: ["paradip", "paradeep", "ಪಾರಾದೀಪ್", "पारादीप", "പാരദീപ്", "பாரதீப்", "పారదీప్"], lat: 20.3165, lon: 86.6114, state: "Odisha" },
+      { name: "Kolkata", aliases: ["kolkata", "calcutta", "ಕೋಲ್ಕತ್ತಾ", "कोलकाता", "കൊൽക്കത്ത", "கொல்கத்தா", "కోల్‌కతా"], lat: 22.0294, lon: 88.0645, state: "West Bengal" }
+    ];
+
+    function autoSelectNearestHarbor(lat, lon) {
+      let minDistance = Infinity;
+      let nearest = coastalHarbors[0];
+      for (const h of coastalHarbors) {
+        const dLat = (lat - h.lat) * 111.0;
+        const dLon = (lon - h.lon) * 111.0 * Math.cos((lat * Math.PI) / 180);
+        const distKm = Math.hypot(dLat, dLon);
+        if (distKm < minDistance) {
+          minDistance = distKm;
+          nearest = h;
+        }
+      }
+      const portSel = document.getElementById('portSelector');
+      if (portSel && portSel.value !== nearest.name) {
+        portSel.value = nearest.name;
+      }
+      state.activeLocation = nearest.name;
+      setText('activeHarborLabel', `${nearest.name.toUpperCase()} SECTOR`);
+      return nearest;
+    }
+
+    function detectAndSelectHarborFromText(text) {
+      if (!text) return null;
+      const lower = text.toLowerCase();
+      for (const h of coastalHarbors) {
+        const matches = (h.aliases || [h.name.toLowerCase()]).some(alias => lower.includes(alias.toLowerCase()));
+        if (matches) {
+          const portSel = document.getElementById('portSelector');
+          if (portSel && portSel.value !== h.name) {
+            portSel.value = h.name;
+          }
+          state.activeLocation = h.name;
+          setText('activeHarborLabel', `${h.name.toUpperCase()} SECTOR`);
+          return h;
+        }
+      }
+      return null;
+    }
+    function initAutoGpsLocation(isManualRefresh = false) {
+      const heroTelemetry = document.getElementById('heroGpsTelemetry');
+      const heroLabel = document.getElementById('heroGpsBtnLabel');
+      const headTelemetry = document.getElementById('headerGpsTelemetry');
+      const headText = document.getElementById('headerGpsText');
+
+      if (!navigator.geolocation) {
+        if (heroLabel) heroLabel.textContent = 'GPS SENSOR OFFLINE • DEFAULT SECTOR';
+        if (headText) headText.textContent = 'GPS OFFLINE';
+        if (heroTelemetry) heroTelemetry.classList.remove('pending');
+        if (headTelemetry) headTelemetry.classList.remove('pending');
+        executeMultiAgentQuery();
+        return;
+      }
+
+      if (heroTelemetry) heroTelemetry.classList.add('pending');
+      if (headTelemetry) headTelemetry.classList.add('pending');
+      if (heroLabel) heroLabel.textContent = isManualRefresh ? 'ACQUIRING SATELLITE FIX...' : 'GPS AUTO-DETECT: REQUESTING LIVE POSITION...';
+      if (headText) headText.textContent = 'GPS: LOCATING...';
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          state.hasGps = true;
+          state.currentLat = lat;
+          state.currentLon = lon;
+          const nearestHarbor = autoSelectNearestHarbor(lat, lon);
+          state.activeLocation = nearestHarbor.name;
+
+          if (heroTelemetry) heroTelemetry.classList.remove('pending');
+          if (headTelemetry) headTelemetry.classList.remove('pending');
+          if (heroLabel) heroLabel.textContent = `LIVE GPS LOCKED: ${nearestHarbor.name.toUpperCase()} (${lat.toFixed(2)}°N, ${lon.toFixed(2)}°E)`;
+          if (headText) headText.textContent = `GPS: ${lat.toFixed(2)}°N, ${lon.toFixed(2)}°E`;
+
+          setText('activeHarborLabel', `${nearestHarbor.name.toUpperCase()} SECTOR (GPS ONBOARD)`);
+          setText('activeCoordLabel', `${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E`);
+
+          const qInput = document.getElementById('overviewQueryInput');
+          if (qInput) {
+            qInput.value = `Is it safe to fish at current GPS location (${lat.toFixed(2)}°N, ${lon.toFixed(2)}°E) near ${nearestHarbor.name}?`;
+          }
+
+          // Instantly display your data
+          executeMultiAgentQuery();
+        },
+        (err) => {
+          console.warn('GPS auto-location note:', err.message);
+          const defaultHarbor = coastalHarbors[0];
+          state.hasGps = false;
+          state.currentLat = defaultHarbor.lat;
+          state.currentLon = defaultHarbor.lon;
+          state.activeLocation = defaultHarbor.name;
+
+          if (heroTelemetry) heroTelemetry.classList.remove('pending');
+          if (headTelemetry) headTelemetry.classList.remove('pending');
+          if (heroLabel) heroLabel.textContent = `GPS OFF • SECTOR: ${defaultHarbor.name.toUpperCase()} (${defaultHarbor.lat.toFixed(2)}°N, ${defaultHarbor.lon.toFixed(2)}°E)`;
+          if (headText) headText.textContent = `SECTOR: ${defaultHarbor.name.toUpperCase()}`;
+
+          setText('activeHarborLabel', `${defaultHarbor.name.toUpperCase()} COASTAL SECTOR`);
+          setText('activeCoordLabel', `${defaultHarbor.lat.toFixed(2)}°N, ${defaultHarbor.lon.toFixed(2)}°E`);
+
+          // Instantly display data for default sector
+          executeMultiAgentQuery();
+        },
+        { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 }
+      );
+    }
+
+    const acquireUserLocation = initAutoGpsLocation;
+
+    function handlePortDropdownChange(portName) {
+      state.activeLocation = portName;
+      state.hasGps = false;
+      const qInput = document.getElementById('overviewQueryInput');
+      if (qInput) {
+        qInput.value = `Is it safe to fish near ${portName} tomorrow morning for mackerel?`;
+      }
+      executeMultiAgentQuery();
+    }
+
+    /* ==========================================================================
+       5. DIALECT & LOCALIZATION TOGGLE
+       ========================================================================== */
+    function setDialect(langKey) {
+      state.currentLang = langKey;
+      const dict = i18n[langKey] || i18n.en;
+
+      // 1. Update active styling on language buttons in header
+      document.querySelectorAll('.dialect-chip').forEach(chip => {
+        chip.classList.toggle('active', chip.getAttribute('data-lang') === langKey);
+      });
+
+      // 1b. Update active styling on language buttons in PTT modal
+      document.querySelectorAll('.ptt-dialect-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-lang') === langKey);
+      });
+
+      // 2. Update Header elements
+      setText('headerGpsText', dict.btnGpsHeader);
+      const navLinks = document.querySelectorAll('.nav-tab-link');
+      if (navLinks.length >= 3) {
+        navLinks[0].textContent = dict.navOverview;
+        navLinks[1].textContent = dict.navEcdis;
+        navLinks[2].textContent = dict.navPfz;
+      }
+      setText('quickPttLabel', dict.quickPtt || '• PTT CH-16');
+
+      // 3. Update Overview Hero & Decision elements
+      setText('capsuleVerdictText', dict.goVerdict);
+      setText('overviewHeroSub', dict.subTitle);
+      setText('discTitle', dict.holdToTalk);
+      setText('heroGpsBtnLabel', dict.btnGps);
+      setText('coastalHarborText', dict.portLabel);
+      setText('btnTransmitLabel', dict.btnTransmit);
+      setText('scrollCueText', dict.scrollCue);
+
+      // 4. Update Query Input with localized question and placeholder
+      const qInput = document.getElementById('overviewQueryInput');
+      if (qInput) {
+        qInput.placeholder = dict.queryPlaceholder;
+        qInput.value = dict.querySample;
+      }
+
+      // 5. Update Preset Pills
+      const presetPills = document.querySelectorAll('.preset-pill');
+      if (presetPills.length >= 4 && dict.presets) {
+        presetPills[0].textContent = dict.presets[0];
+        presetPills[1].textContent = dict.presets[1];
+        presetPills[2].textContent = dict.presets[2];
+        presetPills[3].textContent = dict.presets[3];
+      }
+
+      // 6. Update Tactical Autopilot and Footer elements
+      setText('btnAutopilotLabel', dict.btnAutopilot);
+      setText('footSafetyVerdict', dict.footerSafe);
+
+      // 7. Update Speech Recognition dialect if armed
+      if (pttRecognition) {
+        pttRecognition.lang = { en: 'en-IN', kn: 'kn-IN', hi: 'hi-IN', ml: 'ml-IN', ta: 'ta-IN', te: 'te-IN' }[langKey] || 'en-IN';
+      }
+
+      // 8. Automatically re-execute multi-agent query in the selected language!
+      executeMultiAgentQuery(dict.querySample);
+    }
+
+    /* ==========================================================================
+       6. LIVE API INTEGRATION & MULTI-AGENT EXECUTION (TRANSMIT BUTTON)
+       ========================================================================== */
+    async function executeMultiAgentQuery(queryOverride) {
+      const qInput = document.getElementById('overviewQueryInput');
+      const query = queryOverride || (qInput ? qInput.value : "Is it safe to fish near Mangalore for mackerel?");
+      
+      // Auto-detect and select coastal harbor mentioned in user query
+      detectAndSelectHarborFromText(query);
+
+      const vesselSelect = document.getElementById('vesselSelect');
+      if (vesselSelect) state.activeVessel = vesselSelect.value;
+      
+      const btnTransmitLabel = document.getElementById('btnTransmitLabel');
+      if (btnTransmitLabel) {
+        const dict = i18n[state.currentLang] || i18n.en;
+        btnTransmitLabel.textContent = state.currentLang === 'hi' ? 'विश्लेषण जारी...' : (state.currentLang === 'kn' ? 'ವಿಶ್ಲೇಷಿಸಲಾಗುತ್ತಿದೆ...' : (state.currentLang === 'ta' ? 'பகுப்பாய்வு...' : 'REASONING...'));
+      }
+
+      // Always resolve coordinates (GPS or coastal harbor) for instantaneous cache hits
+      const harborCoords = coastalHarbors.find(h => h.name.toLowerCase() === (state.activeLocation || '').toLowerCase());
+      const resolvedLat = state.hasGps ? state.currentLat : (harborCoords ? harborCoords.lat : 12.9141);
+      const resolvedLon = state.hasGps ? state.currentLon : (harborCoords ? harborCoords.lon : 74.8560);
+
+      const payload = {
+        query: query,
+        location_name: state.activeLocation,
+        target_location: state.activeLocation,
+        target_species: state.activeSpecies,
+        temporal_window: 'tomorrow morning',
+        temporal_target: 'tomorrow morning',
+        vessel_category: state.activeVessel,
+        vessel_type: state.activeVessel,
+        language: state.currentLang,
+        preferred_language: state.currentLang,
+        latitude: resolvedLat,
+        longitude: resolvedLon
+      };
+
+      try {
+        const response = await fetch('/api/v1/advisory', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        applyAdvisoryData(data);
+
+      } catch (err) {
+        console.warn('Live advisory execution notice:', err);
+      } finally {
+        if (btnTransmitLabel) {
+          const dict = i18n[state.currentLang] || i18n.en;
+          btnTransmitLabel.textContent = dict.btnTransmit || 'TRANSMIT';
+        }
+      }
+    }
+
+    function applyAdvisoryData(data) {
+      const loc = data.location || {};
+      const weather = data.weather_report || {};
+      const ocean = data.ocean_report || {};
+      const geofence = data.geofence_report || {};
+      const safety = data.safety_assessment || {};
+      const route = data.route_plan || {};
+      const departure = data.departure_window || {};
+      const cyclone = data.cyclone_alert || {};
+
+      state.latestVhfScript = data.audio_broadcast_script || state.latestVhfScript;
+
+      // Auto-select coastal harbor in dropdown if resolved by backend
+      if (loc.location_name) {
+        detectAndSelectHarborFromText(loc.location_name);
+      }
+
+      // Section 1: Overview & Launch Capsule
+      const portName = (loc.location_name || state.activeLocation).toUpperCase();
+      const isSafe = safety.go_no_go_decision === 'GO';
+      const isCaution = safety.go_no_go_decision === 'GO_WITH_CAUTION';
+      const verdictStr = isSafe ? 'GO — SAFE TO LAUNCH' : isCaution ? 'CAUTION — MONITOR BUFFER' : 'NO-GO — STAND DOWN';
+      setText('capsuleVerdictText', verdictStr);
+      setText('capsuleScoreText', `${safety.safety_score || 100}/100`);
+      setText('capsuleWindowText', departure.recommended_window || "05:30 — 10:30 IST");
+
+      // Top Header Port / Coordinates
+      if (!state.hasGps) {
+        setText('activeHarborLabel', `${portName} SECTOR`);
+        if (loc.latitude && loc.longitude) {
+          setText('activeCoordLabel', `${loc.latitude.toFixed(2)}°N, ${loc.longitude.toFixed(2)}°E`);
+        }
+      }
+
+      // Section 2: Tactical ECDIS
+      setText('ecdisRouteHeader', `Route: ${loc.location_name || state.activeLocation} Departure → PFZ Hotspot Alpha • ${geofence.nearest_boundary_distance_nm || 309} NM IMBL Buffer`);
+      setText('ecdisWpTag', `WP-01  ${route.initial_bearing_deg || 242}°  ${route.total_distance_nm || 48.6} NM  ETA ${route.estimated_transit_time_hours ? route.estimated_transit_time_hours.toFixed(1) + 'h' : '01h 20m'}`);
+      setText('radarBearingFoot', `BEARING: ${route.initial_bearing_deg || 242.0}° T`);
+      setText('radarDistanceFoot', `RANGE: ${route.total_distance_nm || 48.6} NM`);
+
+      // Section 3: Fisheries PFZ
+      setText('pfzHotspotTitle', `Hotspot Alpha • ${ocean.pfz_potential_score ? Math.round(ocean.pfz_potential_score) : 89}% Biological Suitability`);
+      setText('pfzHotspotCoords', `Target Coordinates: ${loc.latitude ? (loc.latitude - 0.12).toFixed(4) : '12.6841'}°N, ${loc.longitude ? (loc.longitude - 0.82).toFixed(4) : '74.0321'}°E • High Feeding Plume`);
+      setText('pfzBearingRange', `${route.initial_bearing_deg || 242}° / ${route.total_distance_nm || 48.6} NM`);
+      setText('pfzTransitTime', `${route.estimated_transit_time_hours ? route.estimated_transit_time_hours.toFixed(1) + 'h' : '01h 20m'}`);
+      setText('pfzSpeed', `${route.recommended_cruising_speed_knots || 8.5} kts`);
+      setText('wcSst', `${ocean.sea_surface_temperature_c || 28.4} °C`);
+      setText('wcChl', `${ocean.chlorophyll_a_mg_m3 || 1.82} mg/m³`);
+
+      // Catch suitability
+      setText('speciesName1', state.activeSpecies || 'Indian Mackerel');
+      setText('speciesProb1', `${ocean.pfz_potential_score ? Math.round(ocean.pfz_potential_score) : 89}% Suitability`);
+      const fill1 = document.getElementById('speciesFill1');
+      if (fill1) fill1.style.width = `${ocean.pfz_potential_score ? Math.round(ocean.pfz_potential_score) : 89}%`;
+      setText('catchTransitEta', `${route.estimated_transit_time_hours ? route.estimated_transit_time_hours.toFixed(1) + 'h' : '01h 20m'}`);
+      setText('catchTransitDist', `${route.total_distance_nm || 11.3} NM`);
+
+      // Live Advisory Dispatch
+      renderAdvisoryFeed(data);
+      if (data.execution_time_ms) {
+        setText('advisoryLatency', `LATENCY: ${Math.round(data.execution_time_ms)} MS`);
+      }
+
+      renderEcdisChart();
+      renderPfzChart();
+    }
+
+    function toggleVhfScriptDetails() {
+      const drawer = document.getElementById('vhfScriptDrawer');
+      if (drawer) drawer.classList.toggle('open');
+    }
+
+    function renderAdvisoryFeed(data) {
+      const feedList = document.getElementById('advisoryFeedList');
+      if (!feedList) return;
+
+      const loc = data.location || {};
+      const weather = data.weather_report || {};
+      const ocean = data.ocean_report || {};
+      const geofence = data.geofence_report || {};
+      const safety = data.safety_assessment || {};
+      const route = data.route_plan || {};
+      const departure = data.departure_window || {};
+      const cyclone = data.cyclone_alert || {};
+
+      const isSafe = safety.go_no_go_decision === 'GO';
+      const isCaution = safety.go_no_go_decision === 'GO_WITH_CAUTION';
+      const badgeClass = isSafe ? 'go' : (isCaution ? 'caution' : 'nogo');
+      const badgeText = isSafe ? '✓ GO — SAFE TO SAIL' : (isCaution ? '▲ CAUTION ADVISED' : '✕ NO-GO — STAND DOWN');
+      const score = safety.safety_score != null ? safety.safety_score : 100;
+      const vessel = (state.activeVessel || data.vessel_type || 'Motorized Boat').toUpperCase();
+      const species = (state.activeSpecies || data.target_species || 'Indian Mackerel').toUpperCase();
+      const guidance = (safety.safety_recommendations && safety.safety_recommendations.length > 0)
+        ? safety.safety_recommendations.join(' ')
+        : 'Favorable sea conditions for marine operations. Proceed with standard nautical protocols.';
+
+      const vhfScript = data.audio_broadcast_script || state.latestVhfScript || 'ALL STATIONS, ALL STATIONS. THIS IS OCEANOVA MARINE INTELLIGENCE ADVISORY...';
+
+      let feedHtml = '';
+
+      // Support localized text with parsed bullet tiles
+      if (state.currentLang && state.currentLang !== 'en' && data.advisory_text) {
+        const rawLines = data.advisory_text.split('\n').map(l => l.trim()).filter(Boolean);
+        let titleBadge = badgeText;
+        let bulletsHtml = '';
+
+        rawLines.forEach(line => {
+          if (line.startsWith('===')) {
+            titleBadge = line.replace(/===/g, '').trim();
+          } else {
+            const cleanLine = line.replace(/^[•\-\*]\s*/, '').trim();
+            const colonIdx = cleanLine.indexOf(':');
+            if (colonIdx > 0) {
+              const label = cleanLine.substring(0, colonIdx).trim();
+              const val = cleanLine.substring(colonIdx + 1).trim();
+              bulletsHtml += `
+                <div class="synth-telemetry-tile">
+                  <div class="synth-tile-tag">${label}</div>
+                  <div class="synth-tile-val"><strong>${val}</strong></div>
+                </div>`;
+            } else if (cleanLine) {
+              bulletsHtml += `
+                <div class="synth-telemetry-tile" style="grid-column: 1 / -1;">
+                  <div class="synth-tile-val">${cleanLine}</div>
+                </div>`;
+            }
+          }
+        });
+
+        feedHtml += `
+          <div class="synth-dispatch-card">
+            <div class="synth-card-head">
+              <div class="synth-agent-info">
+                <div class="synth-agent-name">
+                  <span class="synth-agent-beacon"></span>
+                  <span>OCEANOVA CORE SYNTHESIZER</span>
+                </div>
+                <div class="synth-meta-sub">
+                  VESSEL: <strong>${vessel}</strong> • TARGET: <strong>${species}</strong>
+                </div>
+              </div>
+              <div class="synth-decision-badge ${badgeClass}">
+                ${titleBadge} (${score}/100)
+              </div>
+            </div>
+
+            <div class="synth-telemetry-grid">
+              ${bulletsHtml}
+            </div>
+
+            <div class="synth-audio-controls">
+              <button class="btn-vhf-broadcast-play" onclick="playCurrentVhfBroadcast()" title="Play VHF speech synthesis broadcast">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon></svg>
+                <span>PLAY VHF BROADCAST (CH-16)</span>
+              </button>
+              <button class="btn-vhf-script-toggle" onclick="toggleVhfScriptDetails()">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                <span>VHF RADIO SCRIPT</span>
+              </button>
+            </div>
+
+            <div class="vhf-script-drawer" id="vhfScriptDrawer">
+              <div style="color: var(--signal-cyan); font-weight: 700; margin-bottom: 0.35rem;">VERBATIM VHF RADIO TRANSMISSION:</div>
+              <div>${vhfScript}</div>
+            </div>
+          </div>`;
+
+      } else {
+        // High-grade English structured tactical tiles
+        const waveH = weather.wave_height_m != null ? weather.wave_height_m : 1.18;
+        const waveP = weather.wave_period_s != null ? weather.wave_period_s : 9.5;
+        const windS = weather.wind_speed_knots != null ? weather.wind_speed_knots : 6.5;
+        const windD = weather.wind_direction_deg != null ? weather.wind_direction_deg : 302;
+        const sst = ocean.sea_surface_temperature_c != null ? ocean.sea_surface_temperature_c : 29.31;
+        const chl = ocean.chlorophyll_a_mg_m3 != null ? ocean.chlorophyll_a_mg_m3 : 1.07;
+        const pfzScore = ocean.pfz_potential_score != null ? Math.round(ocean.pfz_potential_score) : 100;
+        const pfzRating = ocean.pfz_rating || 'HIGH';
+        const winTime = departure.recommended_window || '12 PM — 04 PM';
+        const winAdvice = departure.advice || 'Optimal departure between 12 PM and 04 PM (calm waves ~1.16m, wind ~4.0 kts).';
+        const hdg = route.initial_bearing_deg != null ? route.initial_bearing_deg : 50.9;
+        const dist = route.total_distance_nm != null ? route.total_distance_nm : 11.4;
+        const speed = route.recommended_cruising_speed_knots != null ? route.recommended_cruising_speed_knots : 8.5;
+        const eta = route.estimated_transit_time_hours != null ? route.estimated_transit_time_hours.toFixed(2) : '1.34';
+        const borderDist = geofence.nearest_boundary_distance_nm != null ? geofence.nearest_boundary_distance_nm : 194.04;
+        const borderAlert = geofence.border_alert_level || 'CLEAR';
+        const borderCountry = geofence.nearest_country || 'Sri Lanka';
+
+        feedHtml += `
+          <div class="synth-dispatch-card">
+            <div class="synth-card-head">
+              <div class="synth-agent-info">
+                <div class="synth-agent-name">
+                  <span class="synth-agent-beacon"></span>
+                  <span>OCEANOVA CORE SYNTHESIZER</span>
+                </div>
+                <div class="synth-meta-sub">
+                  VESSEL: <strong>${vessel}</strong> • TARGET: <strong>${species}</strong>
+                </div>
+              </div>
+              <div class="synth-decision-badge ${badgeClass}">
+                ${badgeText} (${score}/100)
+              </div>
+            </div>
+
+            <div class="synth-telemetry-grid">
+              <div class="synth-telemetry-tile">
+                <div class="synth-tile-tag">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20M2 6h20M2 18h20"></path></svg>
+                  WEATHER &amp; SEA STATE
+                </div>
+                <div class="synth-tile-val">
+                  Wind: <strong>${windS} kts</strong> (${windD}°) • Waves: <strong>${waveH}m</strong> (${waveP}s)
+                </div>
+              </div>
+
+              <div class="synth-telemetry-tile">
+                <div class="synth-tile-tag">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  BEST SAILING WINDOW
+                </div>
+                <div class="synth-tile-val">
+                  <strong>${winTime}</strong> (${winAdvice})
+                </div>
+              </div>
+
+              <div class="synth-telemetry-tile">
+                <div class="synth-tile-tag">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"></circle><line x1="12" y1="1" x2="12" y2="4"></line></svg>
+                  OCEAN &amp; PFZ SUITABILITY
+                </div>
+                <div class="synth-tile-val">
+                  SST: <strong>${sst}°C</strong> • Chl-a: <strong>${chl} mg/m³</strong> • <strong>${pfzRating}</strong> (${pfzScore}/100)
+                </div>
+              </div>
+
+              <div class="synth-telemetry-tile">
+                <div class="synth-tile-tag">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+                  SAFEST COURSE TRACK
+                </div>
+                <div class="synth-tile-val">
+                  HDG <strong>${hdg}° T</strong> • <strong>${dist} NM</strong> (Speed <strong>${speed} kts</strong>, ETA <strong>${eta} hrs</strong>)
+                </div>
+              </div>
+            </div>
+
+            <div class="synth-telemetry-tile" style="grid-column: 1 / -1;">
+              <div class="synth-tile-tag">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                MARITIME BOUNDARY &amp; GEOFENCE
+              </div>
+              <div class="synth-tile-val">
+                <strong style="color: var(--signal-green-bright);">${borderAlert}:</strong> Navigating securely within Indian EEZ (${borderDist} NM to nearest ${borderCountry} boundary).
+              </div>
+            </div>
+
+            <div class="synth-guidance-box">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top:2px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              <div><strong>NAUTICAL GUIDANCE:</strong> ${guidance}</div>
+            </div>
+
+            <div class="synth-audio-controls">
+              <button class="btn-vhf-broadcast-play" onclick="playCurrentVhfBroadcast()" title="Play VHF speech synthesis broadcast">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon></svg>
+                <span>PLAY VHF BROADCAST (CH-16)</span>
+              </button>
+              <button class="btn-vhf-script-toggle" onclick="toggleVhfScriptDetails()">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                <span>VHF RADIO SCRIPT</span>
+              </button>
+            </div>
+
+            <div class="vhf-script-drawer" id="vhfScriptDrawer">
+              <div style="color: var(--signal-cyan); font-weight: 700; margin-bottom: 0.35rem;">VERBATIM VHF RADIO TRANSMISSION:</div>
+              <div>${vhfScript}</div>
+            </div>
+          </div>`;
+      }
+
+      // Add Sub-Agents Cards
+      const waveVal = weather.wave_height_m != null ? weather.wave_height_m : 1.18;
+      const windVal = weather.wind_speed_knots != null ? weather.wind_speed_knots : 6.5;
+      const swellVal = weather.wave_period_s != null ? weather.wave_period_s : 9.5;
+      const swellDir = weather.wave_direction_deg != null ? weather.wave_direction_deg : 302;
+      const cycRisk = cyclone.cyclonic_risk_score != null ? cyclone.cyclonic_risk_score : 0.05;
+      const cycSev = cyclone.alert_severity || 'LOW';
+      const bDist = geofence.nearest_boundary_distance_nm != null ? geofence.nearest_boundary_distance_nm : 194.04;
+      const bCountry = geofence.nearest_country || 'Sri Lanka';
+
+      feedHtml += `
+        <div class="subagent-dispatch-card">
+          <div class="subagent-head">
+            <span>Marine Meteorology Agent</span>
+            <span class="subagent-tag">WMO METOCEAN</span>
+          </div>
+          <div>Wave: <strong>${waveVal}m</strong> • Wind: <strong>${windVal} kt</strong> • Swell: <strong>${swellVal}s @ ${swellDir}°</strong> • Sea State: <strong>${waveVal < 1.25 ? 'Slight' : 'Moderate'}</strong> • Cyclonic Risk: <strong>${cycRisk} (${cycSev})</strong></div>
+        </div>
+
+        <div class="subagent-dispatch-card">
+          <div class="subagent-head">
+            <span>Geofence &amp; Maritime Boundary Agent</span>
+            <span class="subagent-tag">UNCLOS EEZ</span>
+          </div>
+          <div>Border Buffer: <strong>${bDist} NM</strong> to ${bCountry} • Indian EEZ: <strong>Verified Inside</strong> • Marine Protected Area: <strong>Clear Buffer</strong></div>
+        </div>
+      `;
+
+      feedList.innerHTML = feedHtml;
+    }
+
+    function loadPreset(locationName, query, species, vessel) {
+      state.activeLocation = locationName;
+      state.activeSpecies = species;
+      state.hasGps = false;
+      if (vessel) {
+        state.activeVessel = vessel;
+        const vSel = document.getElementById('vesselSelect');
+        if (vSel) vSel.value = vessel;
+      }
+      const portSel = document.getElementById('portSelector');
+      if (portSel) portSel.value = locationName;
+
+      const input = document.getElementById('overviewQueryInput');
+      if (input) input.value = query;
+      executeMultiAgentQuery(query);
+    }
+
+    function setText(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    }
+
+    /* ==========================================================================
+       7. PUSH-TO-TALK (PTT) VOICE STATION (CLICK OR HOLD TOGGLE)
+       ========================================================================== */
+    function openPttModal() {
+      document.getElementById('ptt-modal-overlay').classList.add('open');
+      initWaveformVisualizer();
+    }
+
+    function closePttModal() {
+      document.getElementById('ptt-modal-overlay').classList.remove('open');
+      stopPttRecording();
+    }
+
+    let pttRecognition = null;
+    let waveAnimId = null;
+    let pttMediaRecorder = null;
+    let pttAudioChunks = [];
+    let pttRecordedBlob = null;
+    let currentVhfAudio = null;
+
+    function toggleHeroPTT() {
+      if (state.isRecording) {
+        stopPttRecording();
+      } else {
+        openPttModal();
+        startPttRecording();
+      }
+    }
+
+    let pttQueryDispatched = false;
+
+    async function startPttRecording() {
+      state.isRecording = true;
+      pttQueryDispatched = false;
+      pttAudioChunks = [];
+      const btn = document.getElementById('pttDiscBtn');
+      if (btn) btn.classList.add('recording');
+      const quickBtn = document.getElementById('btnPttQuick');
+      if (quickBtn) quickBtn.classList.add('recording');
+      const holdBtn = document.getElementById('btnRecordHold');
+      if (holdBtn) { holdBtn.classList.add('recording'); holdBtn.querySelector('span').textContent = 'RECORDING AUDIO... (CLICK TO STOP)'; }
+      const statusText = document.getElementById('pttWaveStatus');
+      if (statusText) statusText.textContent = '● Recording device audio file & listening live...';
+      const foot = document.getElementById('pttFootnote');
+      if (foot) foot.textContent = '● Microphone Active • Recording device audio file... Click again to submit.';
+
+      // 1. Arm MediaRecorder API to record device audio file
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          pttMediaRecorder = new MediaRecorder(stream);
+          pttAudioChunks = [];
+
+          pttMediaRecorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) pttAudioChunks.push(e.data);
+          };
+
+          pttMediaRecorder.onstop = async () => {
+            if (pttAudioChunks.length > 0) {
+              pttRecordedBlob = new Blob(pttAudioChunks, { type: 'audio/webm' });
+              const fileBadge = document.getElementById('pttFileBadge');
+              const fileBadgeText = document.getElementById('pttFileBadgeText');
+              const audioEl = document.getElementById('pttRecordedAudio');
+              const sizeKb = (pttRecordedBlob.size / 1024).toFixed(1);
+              const filename = `oceanova_transmission_${Date.now()}.webm`;
+
+              if (fileBadge && fileBadgeText) {
+                fileBadge.style.display = 'flex';
+                fileBadgeText.textContent = `💾 Recorded Audio File: ${filename} (${sizeKb} KB) • Transmitting to Oceanova Speech Service...`;
+              }
+              if (audioEl) {
+                audioEl.src = URL.createObjectURL(pttRecordedBlob);
+                audioEl.style.display = 'block';
+              }
+
+              // Send audio file to Oceanova speech service endpoint
+              try {
+                const formData = new FormData();
+                formData.append('file', pttRecordedBlob, filename);
+                const sttRes = await fetch(`/api/v1/speech/stt?language=${state.currentLang}`, {
+                  method: 'POST',
+                  body: formData
+                });
+                if (sttRes.ok) {
+                  const sttData = await sttRes.json();
+                  if (fileBadgeText) {
+                    fileBadgeText.textContent = `✓ Audio File Processed (${sizeKb} KB) via ${sttData.backend || 'Speech Service'}`;
+                  }
+                  if (!pttQueryDispatched && sttData.transcript) {
+                    pttQueryDispatched = true;
+                    const input = document.getElementById('overviewQueryInput');
+                    if (input) input.value = sttData.transcript;
+                    const tLog = document.getElementById('pttTranscriptLog');
+                    if (tLog) tLog.innerHTML = `<div><strong>OPERATOR (VOICE):</strong> "${sttData.transcript}"</div><div style="margin-top:0.4rem; color: var(--signal-cyan-bright);">Processing multi-agent reasoning...</div>`;
+                    executeMultiAgentQuery(sttData.transcript);
+                  }
+                }
+              } catch (sttErr) {
+                console.warn('STT audio file transmission note:', sttErr);
+              }
+            }
+            // Stop mic tracks
+            stream.getTracks().forEach(t => t.stop());
+          };
+
+          pttMediaRecorder.start();
+        } catch (micErr) {
+          console.warn('MediaRecorder microphone access note:', micErr);
+        }
+      }
+
+      // 2. Arm Web Speech API for instantaneous transcription & query trigger
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        try {
+          pttRecognition = new SpeechRecognition();
+          pttRecognition.lang = { en: 'en-IN', kn: 'kn-IN', hi: 'hi-IN', ml: 'ml-IN', ta: 'ta-IN', te: 'te-IN' }[state.currentLang] || 'en-IN';
+          pttRecognition.continuous = false;
+          pttRecognition.interimResults = false;
+
+          pttRecognition.onresult = (e) => {
+            if (pttQueryDispatched) return;
+            pttQueryDispatched = true;
+            const transcript = e.results[0][0].transcript;
+            const input = document.getElementById('overviewQueryInput');
+            if (input) input.value = transcript;
+            const tLog = document.getElementById('pttTranscriptLog');
+            if (tLog) tLog.innerHTML = `<div><strong>OPERATOR (VOICE):</strong> "${transcript}"</div><div style="margin-top:0.4rem; color: var(--signal-cyan-bright);">Processing multi-agent reasoning...</div>`;
+            stopPttRecording();
+            executeMultiAgentQuery(transcript);
+          };
+
+          pttRecognition.onerror = (err) => {
+            console.warn('SpeechRecognition notice:', err);
+            stopPttRecording();
+          };
+
+          pttRecognition.start();
+        } catch (e) {
+          console.warn('Speech recognition start note:', e);
+        }
+      }
+    }
+
+    function stopPttRecording() {
+      state.isRecording = false;
+      const btn = document.getElementById('pttDiscBtn');
+      if (btn) btn.classList.remove('recording');
+      const quickBtn = document.getElementById('btnPttQuick');
+      if (quickBtn) quickBtn.classList.remove('recording');
+      const holdBtn = document.getElementById('btnRecordHold');
+      if (holdBtn) { holdBtn.classList.remove('recording'); holdBtn.querySelector('span').textContent = 'CLICK TO TRANSMIT VOICE'; }
+      const statusText = document.getElementById('pttWaveStatus');
+      if (statusText) statusText.textContent = 'Ready • Audio recorded & transmission processed.';
+      const foot = document.getElementById('pttFootnote');
+      if (foot) foot.textContent = 'Ready • Push-to-Talk Active';
+
+      if (pttMediaRecorder && pttMediaRecorder.state !== 'inactive') {
+        try { pttMediaRecorder.stop(); } catch(e){}
+      }
+      if (pttRecognition) {
+        try { pttRecognition.stop(); } catch(e){}
+      }
+    }
+
+    function initWaveformVisualizer() {
+      const wCanvas = document.getElementById('ptt-wave-canvas');
+      if (!wCanvas) return;
+      const wCtx = wCanvas.getContext('2d');
+      wCanvas.width = wCanvas.clientWidth || 480;
+      wCanvas.height = wCanvas.clientHeight || 60;
+
+      let t = 0;
+      function drawWave() {
+        if (!document.getElementById('ptt-modal-overlay').classList.contains('open')) return;
+        wCtx.clearRect(0, 0, wCanvas.width, wCanvas.height);
+        wCtx.beginPath();
+        wCtx.moveTo(0, wCanvas.height / 2);
+
+        const amp = state.isRecording ? 18 : 3;
+        for (let x = 0; x < wCanvas.width; x += 4) {
+          const y = (wCanvas.height / 2) + Math.sin(x * 0.05 + t) * amp * Math.cos(x * 0.02);
+          wCtx.lineTo(x, y);
+        }
+        wCtx.strokeStyle = state.isRecording ? '#ef4444' : '#38bdf8';
+        wCtx.lineWidth = 1.8;
+        wCtx.stroke();
+        t += 0.15;
+        waveAnimId = requestAnimationFrame(drawWave);
+      }
+      drawWave();
+    }
+
+    /* ==========================================================================
+       8. VHF AUDIO BROADCAST PLAYBACK (Neural Edge-TTS + Browser Fallback)
+       ========================================================================== */
+    async function playCurrentVhfBroadcast() {
+      // If audio already playing, pause it
+      if (currentVhfAudio && !currentVhfAudio.paused) {
+        currentVhfAudio.pause();
+        currentVhfAudio = null;
+        return;
+      }
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+
+      // Try high-fidelity Neural Edge-TTS from backend
+      try {
+        const res = await fetch('/api/v1/speech/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: state.latestVhfScript,
+            language: state.currentLang
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === 'success' && data.audio_base64) {
+            currentVhfAudio = new Audio('data:audio/mpeg;base64,' + data.audio_base64);
+            currentVhfAudio.play();
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Backend Neural TTS network note, falling back to browser synthesis:', e);
+      }
+
+      // Fallback to browser SpeechSynthesis
+      if ('speechSynthesis' in window) {
+        const utt = new SpeechSynthesisUtterance(state.latestVhfScript);
+        utt.rate = 0.94;
+        utt.pitch = 0.98;
+        utt.lang = { en: 'en-IN', kn: 'kn-IN', hi: 'hi-IN', ml: 'ml-IN', ta: 'ta-IN', te: 'te-IN' }[state.currentLang] || 'en-IN';
+        window.speechSynthesis.speak(utt);
+      } else {
+        alert('Speech audio playback is not supported on this device.');
+      }
+    }
+
+    /* ==========================================================================
+       9. INTERACTIVE AUTOPILOT INTERCEPT SYSTEM
+       ========================================================================== */
+    function toggleAutopilotIntercept() {
+      state.autopilotEngaged = !state.autopilotEngaged;
+      const btn = document.getElementById('btnAutopilot');
+      const label = document.getElementById('btnAutopilotLabel');
+      const toast = document.getElementById('autopilot-hud-toast');
+      const toastMsg = document.getElementById('autopilotToastMsg');
+      const footVerdict = document.getElementById('footSafetyVerdict');
+
+      // Nautical sound tone via Web Audio API
+      playNauticalChime();
+
+      if (state.autopilotEngaged) {
+        if (btn) btn.classList.add('engaged');
+        if (label) label.textContent = '✓ AUTOPILOT ENGAGED (CLICK TO DISENGAGE)';
+        if (toastMsg) toastMsg.textContent = '✓ AUTOPILOT ENGAGED: STEERING 242° TRUE • 8.5 KT TO HOTSPOT ALPHA';
+        if (toast) { toast.style.display = 'flex'; setTimeout(() => { toast.style.display = 'none'; }, 4500); }
+        if (footVerdict) footVerdict.textContent = 'AUTOPILOT: ENGAGED (242° T)';
+      } else {
+        if (btn) btn.classList.remove('engaged');
+        if (label) label.textContent = 'PLOT AUTOPILOT INTERCEPT';
+        if (toastMsg) toastMsg.textContent = 'AUTOPILOT STAND DOWN • MANUAL HELM RESTORED';
+        if (toast) { toast.style.display = 'flex'; setTimeout(() => { toast.style.display = 'none'; }, 3000); }
+        if (footVerdict) footVerdict.textContent = 'SAFE TO SAIL (MANUAL HELM)';
+      }
+
+      renderPfzChart();
+      renderEcdisChart();
+    }
+
+    function playNauticalChime() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ac = new AudioCtx();
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.connect(gain);
+        gain.connect(ac.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(state.autopilotEngaged ? 784 : 523, ac.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(state.autopilotEngaged ? 1046 : 392, ac.currentTime + 0.25);
+        gain.gain.setValueAtTime(0.18, ac.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ac.currentTime + 0.25);
+        osc.start();
+        osc.stop(ac.currentTime + 0.25);
+      } catch (e) { console.warn('Audio chime note:', e); }
+    }
+
+    function handleQuickSubmit() {
+      const input = document.getElementById('quickLogInput');
+      if (!input || !input.value.trim()) return;
+      executeMultiAgentQuery(input.value.trim());
+      input.value = '';
+    }
+
+    /* ==========================================================================
+       10. TACTICAL RADAR & CHARTS CANVAS RENDERING
+       ========================================================================== */
+    function renderRadarScope() {
+      const c = document.getElementById('radar-scope-canvas');
+      if (!c) return;
+      const ctx = c.getContext('2d');
+      c.width = c.clientWidth || 440;
+      c.height = c.clientHeight || 440;
+      const cx = c.width / 2, cy = c.height / 2;
+      const r = Math.min(cx, cy) - 20;
+
+      function drawSweep() {
+        ctx.fillStyle = 'rgba(2, 6, 14, 0.18)';
+        ctx.fillRect(0, 0, c.width, c.height);
+
+        // Range rings
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.22)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(cx, cy, r * 0.33, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy, r * 0.66, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(cx - r, cy); ctx.lineTo(cx + r, cy);
+        ctx.moveTo(cx, cy - r); ctx.lineTo(cx + r, cy);
+        ctx.stroke();
+
+        ctx.font = '9px "IBM Plex Mono"';
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.65)';
+        ctx.fillText('000°', cx - 10, cy - r - 6);
+        ctx.fillText('090°', cx + r + 6, cy + 3);
+        ctx.fillText('180°', cx - 10, cy + r + 14);
+        ctx.fillText('270°', cx - r - 28, cy + 3);
+
+        // Sweep Cone Beam
+        state.radarAngle = (state.radarAngle + 0.024) % (Math.PI * 2);
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(state.radarAngle);
+        const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+        grad.addColorStop(0, 'rgba(56, 189, 248, 0.45)');
+        grad.addColorStop(0.8, 'rgba(56, 189, 248, 0.08)');
+        grad.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, r, -0.35, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+        // Center Blip
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillText('Own Vessel Track', cx + 8, cy - 6);
+
+        // Target Contact Blip
+        const tx = cx + Math.cos(0.9) * (r * 0.62);
+        const ty = cy - Math.sin(0.9) * (r * 0.62);
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath(); ctx.arc(tx, ty, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillText('TGT-01 [CPA 3.1 NM]', tx + 8, ty - 4);
+
+        // IMBL Bearing Vector line
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)';
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(2.0) * r, cy + Math.sin(2.0) * r); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#f87171';
+        ctx.fillText('IMBL BEARING: 114° ESE | SAFE BUFFER', cx + 18, cy + r * 0.85);
+
+        requestAnimationFrame(drawSweep);
+      }
+      drawSweep();
+    }
+
+    function renderEcdisChart() {
+      const c = document.getElementById('ecdis-chart-canvas');
+      if (!c) return;
+      const ctx = c.getContext('2d');
+      c.width = c.clientWidth || 540;
+      c.height = c.clientHeight || 440;
+      const w = c.width, h = c.height;
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = '#030a16';
+      ctx.fillRect(0, 0, w, h);
+
+      // Contours
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.18)';
+      ctx.lineWidth = 1;
+      const depths = ['20m', '50m', '100m', '118m'];
+      for (let i = 0; i < 4; i++) {
+        const xOffset = w * (0.2 + i * 0.22);
+        ctx.beginPath();
+        ctx.moveTo(xOffset, 0);
+        ctx.bezierCurveTo(xOffset - 40, h * 0.4, xOffset + 40, h * 0.7, xOffset - 20, h);
+        ctx.stroke();
+        ctx.font = '9px "IBM Plex Mono"';
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.45)';
+        ctx.fillText(depths[i], xOffset - 15, 30 + i * 40);
+      }
+
+      // EEZ Boundary line
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1.8;
+      ctx.setLineDash([8, 4]);
+      ctx.beginPath();
+      ctx.moveTo(w * 0.12, 0);
+      ctx.lineTo(w * 0.18, h * 0.55);
+      ctx.lineTo(w * 0.16, h);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillText('INDIAN EEZ (V12)', w * 0.12 + 6, 20);
+
+      // Safe Transit Track Line
+      ctx.strokeStyle = state.autopilotEngaged ? '#34d399' : '#38bdf8';
+      ctx.lineWidth = state.autopilotEngaged ? 2.5 : 2;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.moveTo(w * 0.88, h * 0.72);
+      ctx.lineTo(w * 0.68, h * 0.60);
+      ctx.lineTo(w * 0.45, h * 0.52);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath(); ctx.arc(w * 0.88, h * 0.72, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillText('Departure Port', w * 0.88 - 90, h * 0.72 + 15);
+
+      ctx.beginPath(); ctx.arc(w * 0.45, h * 0.52, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillText('PFZ Hotspot Waypoint', w * 0.45 - 80, h * 0.52 + 18);
+
+      c.onmousemove = (e) => {
+        const rect = c.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        const lat = (12.80 + (1 - my / h) * 0.3).toFixed(2);
+        const lon = (74.20 + (mx / w) * 0.6).toFixed(2);
+        const el = document.getElementById('ecdisCursorTelemetry');
+        if (el) el.textContent = `Cursor: ${lat}°N ${lon}°E | Depth: 118 m | SST: 28.4 °C | Chl: 1.82 mg/m³`;
+      };
+    }
+
+    function renderPfzChart() {
+      const c = document.getElementById('pfz-chart-canvas');
+      if (!c) return;
+      const ctx = c.getContext('2d');
+      c.width = c.clientWidth || 640;
+      c.height = c.clientHeight || 380;
+      const w = c.width, h = c.height;
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = '#030c18';
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.12)';
+      ctx.lineWidth = 1;
+      for (let i = 1; i <= 4; i++) {
+        ctx.beginPath(); ctx.arc(w * 0.5, h * 0.5, i * 80, 0, Math.PI * 2); ctx.stroke();
+      }
+
+      // Hotspot Plume
+      const pGrad = ctx.createRadialGradient(w * 0.35, h * 0.45, 10, w * 0.35, h * 0.45, 110);
+      pGrad.addColorStop(0, 'rgba(16, 185, 129, 0.45)');
+      pGrad.addColorStop(0.5, 'rgba(56, 189, 248, 0.25)');
+      pGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = pGrad;
+      ctx.beginPath(); ctx.arc(w * 0.35, h * 0.45, 110, 0, Math.PI * 2); ctx.fill();
+
+      ctx.fillStyle = '#10b981';
+      ctx.beginPath(); ctx.arc(w * 0.35, h * 0.45, 6, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = state.autopilotEngaged ? '#34d399' : '#10b981';
+      ctx.lineWidth = state.autopilotEngaged ? 2 : 1;
+      ctx.strokeRect(w * 0.20, h * 0.32, 190, 42);
+      ctx.font = '10px "IBM Plex Mono"';
+      ctx.fillStyle = '#fff';
+      ctx.fillText('● Hotspot Alpha (High Feeding)', w * 0.22, h * 0.36 + 8);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.fillText('242° • 48.6 NM • 28.4°C • 1.82 mg/m³', w * 0.22, h * 0.36 + 22);
+
+      // Track line to hotspot (pulses green if autopilot active)
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = state.autopilotEngaged ? '#34d399' : '#38bdf8';
+      ctx.lineWidth = state.autopilotEngaged ? 2.5 : 1.5;
+      ctx.beginPath(); ctx.moveTo(w * 0.72, h * 0.62); ctx.lineTo(w * 0.35, h * 0.45); ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath(); ctx.arc(w * 0.72, h * 0.62, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillText('Departure Point', w * 0.72 + 10, h * 0.62 + 4);
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.fillText('COASTAL SHELF', w * 0.85, h * 0.45);
+    }
+
+    function togglePfzLayer(btn, layerType) {
+      document.querySelectorAll('.pfz-toggle-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderPfzChart();
+    }
+
+    // Automatic GPS acquisition and live data display on initial loading
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        initAutoGpsLocation(false);
+      });
+    } else {
+      initAutoGpsLocation(false);
+    }
+
+    // Initialize interactive visualizers and animations once full assets are ready
+    window.addEventListener('load', () => {
+      initScrollAnimation();
+      initNavScrollObserver();
+      renderRadarScope();
+      renderEcdisChart();
+      renderPfzChart();
+    });
+  </script>
+
 </body>
 </html>

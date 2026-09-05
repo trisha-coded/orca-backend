@@ -1,5 +1,5 @@
 """
-Geofence and Marine Protected Area (MPA) Tool Adapter for ORCA.
+Geofence and Marine Protected Area (MPA) Tool Adapter for Oceanova.
 Implements spatial ray-casting point-in-polygon and maritime boundary distance evaluation.
 """
 

@@ -1,5 +1,5 @@
 """
-Session memory and spatial query caching layer for ORCA backend.
+Session memory and spatial query caching layer for Oceanova backend.
 Implements async Redis with an in-memory TTL fallback.
 Provides spatial coordinate quantization and hit-ratio telemetry.
 """
@@ -38,7 +38,7 @@ class SpatialCache:
                     settings.REDIS_URL,
                     encoding="utf-8",
                     decode_responses=True,
-                    socket_connect_timeout=1.5
+                    socket_connect_timeout=0.2
                 )
                 await self.redis_client.ping()
                 self._connected = True

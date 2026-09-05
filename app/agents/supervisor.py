@@ -107,24 +107,27 @@ class SupervisorAgent:
         geocoding_result = None
         if location_input:
             geocoding_result = await geocoder.geocode_query(location_input)
-        elif not current_lat or not current_lon:
+        if not geocoding_result and query:
             geocoding_result = geocoder.resolve_location(query)
 
-        # If location resolved, extract coordinates
+        # If location resolved, extract coordinates and harbor name
         resolved_lat = current_lat
         resolved_lon = current_lon
         location_name = location_input
 
         if geocoding_result:
-            resolved_lat = geocoding_result["latitude"]
-            resolved_lon = geocoding_result["longitude"]
-            location_name = geocoding_result["name"]
+            if resolved_lat is None or resolved_lon is None:
+                resolved_lat = geocoding_result["latitude"]
+                resolved_lon = geocoding_result["longitude"]
+            if not location_name:
+                location_name = geocoding_result["name"]
 
         # Default to Cochin if still unspecified
         if resolved_lat is None or resolved_lon is None:
             resolved_lat = 9.9312
             resolved_lon = 76.2673
-            location_name = "Cochin Coast"
+        if not location_name:
+            location_name = "Cochin Coast" if abs(resolved_lat - 9.9312) < 0.1 else "Mangalore Coast" if abs(resolved_lat - 12.9141) < 0.1 else "Indian Coastal Waters"
 
         # 3. Intent Classification
         if any(w in lower_q for w in ["route", "heading", "bearing", "waypoint", "track", "direction", "how to reach", "navigate"]):

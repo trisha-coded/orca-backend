@@ -1,3 +1,3 @@
 """
-Data backbone module for ORCA marine data sources.
+Data backbone module for Oceanova marine data sources.
 """

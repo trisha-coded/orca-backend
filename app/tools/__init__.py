@@ -1,3 +1,3 @@
 """
-Tool Adapters module for ORCA domain reasoning.
+Tool Adapters module for Oceanova domain reasoning.
 """

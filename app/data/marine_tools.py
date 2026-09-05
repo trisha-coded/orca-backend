@@ -6,6 +6,7 @@ barometric cyclonic pressure modeling, and continuous physical simulations for I
 from typing import Dict, Any, Optional, List
 import math
 import time
+import asyncio
 from datetime import datetime, timezone, timedelta
 from app.config import settings
 
@@ -23,6 +24,17 @@ class OpenMeteoMarineClient:
     def __init__(self):
         self.marine_url = settings.OPEN_METEO_MARINE_API
         self.weather_url = settings.OPEN_METEO_WEATHER_API
+        self._client = None
+
+    def _get_client(self):
+        if httpx is None:
+            return None
+        if self._client is None or getattr(self._client, "is_closed", False):
+            self._client = httpx.AsyncClient(
+                timeout=httpx.Timeout(2.0, connect=1.0),
+                limits=httpx.Limits(max_keepalive_connections=10, max_connections=20, keepalive_expiry=120.0)
+            )
+        return self._client
 
     @staticmethod
     def _val(d: dict, key: str, default: float) -> float:
@@ -39,23 +51,23 @@ class OpenMeteoMarineClient:
             "timezone": "auto"
         }
 
-        if httpx is not None:
+        client = self._get_client()
+        if client is not None:
             try:
-                async with httpx.AsyncClient(timeout=4.0) as client:
-                    resp = await client.get(self.marine_url, params=params)
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        curr = data.get("current", {})
-                        hourly = data.get("hourly", {})
-                        return {
-                            "wave_height_m": self._val(curr, "wave_height", 1.2),
-                            "wave_direction_deg": self._val(curr, "wave_direction", 240.0),
-                            "wave_period_s": self._val(curr, "wave_period", 6.5),
-                            "wind_wave_height_m": self._val(curr, "wind_wave_height", 0.8),
-                            "swell_wave_height_m": self._val(curr, "swell_wave_height", 0.9),
-                            "hourly_waves": hourly.get("wave_height", []),
-                            "source": "Open-Meteo Marine API (Live)"
-                        }
+                resp = await client.get(self.marine_url, params=params)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    curr = data.get("current", {})
+                    hourly = data.get("hourly", {})
+                    return {
+                        "wave_height_m": self._val(curr, "wave_height", 1.2),
+                        "wave_direction_deg": self._val(curr, "wave_direction", 240.0),
+                        "wave_period_s": self._val(curr, "wave_period", 6.5),
+                        "wind_wave_height_m": self._val(curr, "wind_wave_height", 0.8),
+                        "swell_wave_height_m": self._val(curr, "swell_wave_height", 0.9),
+                        "hourly_waves": hourly.get("wave_height", []),
+                        "source": "Open-Meteo Marine API (Live)"
+                    }
             except Exception:
                 pass
 
@@ -72,39 +84,41 @@ class OpenMeteoMarineClient:
             "timezone": "auto"
         }
 
-        if httpx is not None:
+        client = self._get_client()
+        if client is not None:
             try:
-                async with httpx.AsyncClient(timeout=4.0) as client:
-                    resp = await client.get(self.weather_url, params=params)
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        curr = data.get("current", {})
-                        hourly = data.get("hourly", {})
-                        raw_vis = curr.get("visibility")
-                        vis_km = round(float(raw_vis) / 1000.0, 1) if raw_vis is not None else 10.0
-                        pressure = self._val(curr, "surface_pressure", 1012.0)
-                        return {
-                            "temperature_c": self._val(curr, "temperature_2m", 29.5),
-                            "relative_humidity_pct": self._val(curr, "relative_humidity_2m", 78.0),
-                            "precipitation_mm": self._val(curr, "precipitation", 0.0),
-                            "surface_pressure_hpa": pressure,
-                            "wind_speed_knots": self._val(curr, "wind_speed_10m", 12.0),
-                            "wind_direction_deg": self._val(curr, "wind_direction_10m", 260.0),
-                            "wind_gust_knots": self._val(curr, "wind_gusts_10m", 16.0),
-                            "visibility_km": vis_km,
-                            "hourly_winds": hourly.get("wind_speed_10m", []),
-                            "hourly_rain": hourly.get("precipitation", []),
-                            "hourly_pressure": hourly.get("surface_pressure", []),
-                            "source": "Open-Meteo Weather API (Live)"
-                        }
+                resp = await client.get(self.weather_url, params=params)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    curr = data.get("current", {})
+                    hourly = data.get("hourly", {})
+                    raw_vis = curr.get("visibility")
+                    vis_km = round(float(raw_vis) / 1000.0, 1) if raw_vis is not None else 10.0
+                    pressure = self._val(curr, "surface_pressure", 1012.0)
+                    return {
+                        "temperature_c": self._val(curr, "temperature_2m", 29.5),
+                        "relative_humidity_pct": self._val(curr, "relative_humidity_2m", 78.0),
+                        "precipitation_mm": self._val(curr, "precipitation", 0.0),
+                        "surface_pressure_hpa": pressure,
+                        "wind_speed_knots": self._val(curr, "wind_speed_10m", 12.0),
+                        "wind_direction_deg": self._val(curr, "wind_direction_10m", 260.0),
+                        "wind_gust_knots": self._val(curr, "wind_gusts_10m", 16.0),
+                        "visibility_km": vis_km,
+                        "hourly_winds": hourly.get("wind_speed_10m", []),
+                        "hourly_rain": hourly.get("precipitation", []),
+                        "hourly_pressure": hourly.get("surface_pressure", []),
+                        "source": "Open-Meteo Weather API (Live)"
+                    }
             except Exception:
                 pass
 
         return self._generate_fallback_weather(lat, lon)
 
     async def fetch_combined_conditions(self, lat: float, lon: float) -> Dict[str, Any]:
-        marine_res = await self.fetch_marine_data(lat, lon)
-        weather_res = await self.fetch_weather_data(lat, lon)
+        marine_res, weather_res = await asyncio.gather(
+            self.fetch_marine_data(lat, lon),
+            self.fetch_weather_data(lat, lon)
+        )
 
         # Build 24-hour hourly trend profile
         hourly_profile = self._build_hourly_profile(marine_res, weather_res, lat, lon)

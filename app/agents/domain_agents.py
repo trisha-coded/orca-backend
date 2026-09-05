@@ -143,23 +143,19 @@ class DomainAgents:
         tasks = []
         task_names = []
 
-        # Weather is always executed for nautical safety
+        # Foundational Domain Nodes executed concurrently in parallel
+        # All 4 run concurrently via asyncio.gather (ocean & tides take <1ms and ensure full schema integrity)
         tasks.append(self.weather_node(state))
         task_names.append("weather")
 
-        # Geofence is always executed for border security
         tasks.append(self.geofence_node(state))
         task_names.append("geofence")
 
-        # Conditionally execute Oceanography
-        if state.get("requires_ocean", True):
-            tasks.append(self.ocean_node(state))
-            task_names.append("ocean")
+        tasks.append(self.ocean_node(state))
+        task_names.append("ocean")
 
-        # Conditionally execute Tides
-        if state.get("requires_tides", True):
-            tasks.append(self.tides_node(state))
-            task_names.append("tides")
+        tasks.append(self.tides_node(state))
+        task_names.append("tides")
 
         results = await asyncio.gather(*tasks)
 

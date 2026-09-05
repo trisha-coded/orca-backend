@@ -1,10 +1,10 @@
 """
-Pydantic v2 schemas and GeoJSON models for the ORCA backend.
+Pydantic v2 schemas and GeoJSON models for the Oceanova backend.
 Defines contracts for Client, Frontend, Swagger UI, Conversational Chat, and Multi-Agent Reasoning nodes.
 """
 
 from typing import List, Optional, Dict, Any, Union
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from datetime import datetime, timezone
 
 
@@ -82,6 +82,24 @@ class MarineAdvisoryRequest(BaseModel):
         description="Optional session ID for multi-turn conversational dialogue and context tracking",
         examples=["sess_cochin_01"]
     )
+    target_location: Optional[str] = Field(default=None, description="Alias for location_name")
+    preferred_language: Optional[str] = Field(default=None, description="Alias for language")
+    temporal_window: Optional[str] = Field(default=None, description="Alias for temporal_target")
+    vessel_category: Optional[str] = Field(default=None, description="Alias for vessel_type")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_payload(cls, values: Any) -> Any:
+        if isinstance(values, dict):
+            if not values.get("location_name") and values.get("target_location"):
+                values["location_name"] = values["target_location"]
+            if not values.get("language") and values.get("preferred_language"):
+                values["language"] = values["preferred_language"]
+            if not values.get("temporal_target") and values.get("temporal_window"):
+                values["temporal_target"] = values["temporal_window"]
+            if not values.get("vessel_type") and values.get("vessel_category"):
+                values["vessel_type"] = values["vessel_category"]
+        return values
 
     model_config = {
         "json_schema_extra": {
@@ -310,7 +328,7 @@ class CacheStatsResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str = Field(..., description="Overall health status: healthy / degraded", examples=["healthy"])
-    service: str = Field(..., description="Service name", examples=["ORCA Marine Intelligence Backend"])
+    service: str = Field(..., description="Service name", examples=["Oceanova Marine Intelligence Backend"])
     version: str = Field(..., description="Service version", examples=["1.0.0"])
     redis_cache: str = Field(..., description="connected or in-memory-fallback", examples=["in-memory-fallback"])
     uptime_seconds: float = Field(..., description="Process uptime in seconds", examples=[128.4])

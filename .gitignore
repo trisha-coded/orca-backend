@@ -7,3 +7,10 @@
 venv/
 __pycache__/
 *.pyc
+
+# Assistant & workspace tooling
+.agent/
+.agents/
+.codex/
+.gemini/
+.impeccable/

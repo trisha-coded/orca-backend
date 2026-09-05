@@ -171,7 +171,7 @@ class SynthesizerAgent:
 
         # VHF Broadcast script (English standardized nautical format)
         vhf_script = (
-            f"SECURITY SECURITY SECURITY. ALL STATIONS THIS IS ORCA MARINE ADVISORY. "
+            f"ALL STATIONS, ALL STATIONS. THIS IS OCEANOVA MARINE INTELLIGENCE ADVISORY. "
             f"SAFETY STATUS: {safety.go_no_go_decision}. "
             f"WIND: {w_cond.get('wind_speed_knots')} KNOTS FROM {w_cond.get('wind_direction_deg')} DEGREES. "
             f"SIGNIFICANT WAVES: {w_cond.get('wave_height_m')} METERS. "
@@ -183,7 +183,7 @@ class SynthesizerAgent:
         # English (Default)
         if lang == "en":
             lines = [
-                f"=== ORCA MARINE ADVISORY ({safety.go_no_go_decision}) ===",
+                f"=== OCEANOVA MARINE ADVISORY ({safety.go_no_go_decision}) ===",
                 f"• Safety Status: {safety.overall_safety_status} (Safety Score: {safety.safety_score}/100)",
                 f"• Vessel: {vessel} | Target Species: {species_name}",
                 f"• Weather & Wave: Wind {w_cond.get('wind_speed_knots')} kts, Waves {w_cond.get('wave_height_m')}m (Period: {w_cond.get('wave_period_s')}s).",
@@ -195,15 +195,14 @@ class SynthesizerAgent:
             ]
             if safety.warnings:
                 lines.append("• Warnings: " + " | ".join(safety.warnings))
-            if safety.safety_recommendations:
-                lines.append("• Guidance: " + " ".join(safety.safety_recommendations))
             return "\n".join(lines), vhf_script
 
         # Tamil (ta)
         elif lang == "ta":
             status_ta = "பாதுகாப்பானது (GO)" if safety.go_no_go_decision == "GO" else ("எச்சரிக்கையுடன் செல்லவும் (CAUTION)" if safety.go_no_go_decision == "GO_WITH_CAUTION" else "கடலுக்குச் செல்ல வேண்டாம் (NO GO)")
+            vhf_script_ta = f"அனைத்து நிலையங்களுக்கும் தகவல். இது ஓஷினோவா கடல்சார் தகவல் சேவை. பாதுகாப்பு நிலை: {status_ta}. காற்று: {w_cond.get('wind_speed_knots')} நாட்ஸ். அலைகள்: {w_cond.get('wave_height_m')} மீ. பரிந்துரைக்கப்பட்ட நேரம்: {window.get('recommended_window', 'காலை')}. முடிந்தது."
             text = (
-                f"=== ஆர்கா கடல்சார் தகவல் ({status_ta}) ===\n"
+                f"=== ஓஷினோவா கடல்சார் தகவல் ({status_ta}) ===\n"
                 f"• பாதுகாப்பு நிலை: {safety.overall_safety_status} (மதிப்பெண்: {safety.safety_score}/100)\n"
                 f"• இலக்கு மீன்: {species_name} | படகு வகை: {vessel}\n"
                 f"• வானிலை: காற்று {w_cond.get('wind_speed_knots')} நாட்ஸ், அலை உயரம் {w_cond.get('wave_height_m')} மீ.\n"
@@ -213,13 +212,14 @@ class SynthesizerAgent:
                 f"• எல்லை நிலை: {g_cond.get('border_alert_level')} ({g_cond.get('nearest_country')} எல்லைக்கு {g_cond.get('nearest_boundary_distance_nm')} NM தூரம்).\n"
                 f"• பரிந்துரை: {' '.join(safety.safety_recommendations)}"
             )
-            return text, vhf_script
+            return text, vhf_script_ta
 
         # Malayalam (ml)
         elif lang == "ml":
             status_ml = "സുരക്ഷിതം (GO)" if safety.go_no_go_decision == "GO" else ("ജാഗ്രതയോടെ പോകുക (CAUTION)" if safety.go_no_go_decision == "GO_WITH_CAUTION" else "കടലിൽ പോകരുത് (NO GO)")
+            vhf_script_ml = f"എല്ലാ സ്റ്റേഷനുകൾക്കുമായി അറിയിക്കുന്നു. ഇത് ഒഷ്യനോവ സമുദ്ര മുന്നറിയിപ്പ്. സുരക്ഷാ നില: {status_ml}. കാറ്റ്: {w_cond.get('wind_speed_knots')} നോട്ട്. തിരമാല: {w_cond.get('wave_height_m')} മീറ്റർ. അനുകൂല സമയം: {window.get('recommended_window', 'രാവിലെ')}. തീർന്നു."
             text = (
-                f"=== ഓർക്ക സമുദ്ര മുന്നറിയിപ്പ് ({status_ml}) ===\n"
+                f"=== ഒഷ്യനോവ സമുദ്ര മുന്നറിയിപ്പ് ({status_ml}) ===\n"
                 f"• സുരക്ഷാ നിലവാരം: {safety.overall_safety_status} (സ്കോർ: {safety.safety_score}/100)\n"
                 f"• ലക്ഷ്യമിടുന്ന മത്സ്യം: {species_name} | ബോട്ട്: {vessel}\n"
                 f"• കാലാവസ്ഥ: കാറ്റ് {w_cond.get('wind_speed_knots')} നോട്ട്, തിരമാല {w_cond.get('wave_height_m')} മീറ്റർ.\n"
@@ -229,13 +229,14 @@ class SynthesizerAgent:
                 f"• അതിർത്തി മുന്നറിയിപ്പ്: {g_cond.get('border_alert_level')} ({g_cond.get('nearest_boundary_distance_nm')} NM).\n"
                 f"• നിർദ്ദേശം: {' '.join(safety.safety_recommendations)}"
             )
-            return text, vhf_script
+            return text, vhf_script_ml
 
         # Hindi (hi)
         elif lang == "hi":
             status_hi = "सुरक्षित (GO)" if safety.go_no_go_decision == "GO" else ("सावधानी बरतें (CAUTION)" if safety.go_no_go_decision == "GO_WITH_CAUTION" else "समुद्र में न जाएं (NO GO)")
+            vhf_script_hi = f"सभी स्टेशनों को सूचित किया जाता है। यह ओशिनोवा समुद्री सलाहकार सेवा है। सुरक्षा स्थिति: {status_hi}। हवा: {w_cond.get('wind_speed_knots')} नॉट्स। लहरें: {w_cond.get('wave_height_m')} मीटर। अनुशंसित समय: {window.get('recommended_window', 'सुबह')}। समाप्त।"
             text = (
-                f"=== ओर्का समुद्री सलाह ({status_hi}) ===\n"
+                f"=== ओशिनोवा समुद्री सलाह ({status_hi}) ===\n"
                 f"• सुरक्षा स्थिति: {safety.overall_safety_status} (सुरक्षा स्कोर: {safety.safety_score}/100)\n"
                 f"• लक्षित मछली: {species_name} | नाव: {vessel}\n"
                 f"• मौसम: हवा {w_cond.get('wind_speed_knots')} नॉट्स, लहरें {w_cond.get('wave_height_m')} मीटर.\n"
@@ -245,13 +246,14 @@ class SynthesizerAgent:
                 f"• समुद्री सीमा: {g_cond.get('summary')}\n"
                 f"• कार्रवाई: {' '.join(safety.safety_recommendations)}"
             )
-            return text, vhf_script
+            return text, vhf_script_hi
 
         # Telugu (te)
         elif lang == "te":
             status_te = "సురక్షితం (GO)" if safety.go_no_go_decision == "GO" else ("జాగ్రత్త అవసరం (CAUTION)" if safety.go_no_go_decision == "GO_WITH_CAUTION" else "సముద్రంలోకి వెళ్లవద్దు (NO GO)")
+            vhf_script_te = f"అన్ని స్టేషన్లకు సమాచారం. ఇది ఓషినోవా సముద్ర సలహా. భద్రతా స్థితి: {status_te}. గాలి: {w_cond.get('wind_speed_knots')} నాట్స్. అలలు: {w_cond.get('wave_height_m')} మీటర్లు. ప్రయాణ సమయం: {window.get('recommended_window', 'ఉదయం')}. ముగిసింది."
             text = (
-                f"=== ఓర్కా సముద్ర సలహా ({status_te}) ===\n"
+                f"=== ఓషినోవా సముద్ర సలహా ({status_te}) ===\n"
                 f"• భద్రతా స్థితి: {safety.overall_safety_status} (స్కోరు: {safety.safety_score}/100)\n"
                 f"• లక్ష్య చేప: {species_name} | పడవ: {vessel}\n"
                 f"• వాతావరణం: గాలి {w_cond.get('wind_speed_knots')} నాట్స్, అలల ఎత్తు {w_cond.get('wave_height_m')} మీ.\n"
@@ -261,7 +263,24 @@ class SynthesizerAgent:
                 f"• సరిహద్దు స్థితి: {g_cond.get('border_alert_level')}.\n"
                 f"• సూచన: {' '.join(safety.safety_recommendations)}"
             )
-            return text, vhf_script
+            return text, vhf_script_te
+
+        # Kannada (kn)
+        elif lang == "kn":
+            status_kn = "ಸುರಕ್ಷಿತ (GO)" if safety.go_no_go_decision == "GO" else ("ಎಚ್ಚರಿಕೆಯಿಂದ ಮುಂದುವರಿಯಿರಿ (CAUTION)" if safety.go_no_go_decision == "GO_WITH_CAUTION" else "ಸಮುದ್ರಕ್ಕೆ ಇಳಿಯಬೇಡಿ (NO GO)")
+            vhf_script_kn = f"ಎಲ್ಲಾ ನಿಲ್ದಾಣಗಳಿಗೆ ಸೂಚನೆ. ಇದು ಓಷಿನೋವಾ ಸಮುದ್ರ ಮಾಹಿತಿ. ಸುರಕ್ಷತಾ ಸ್ಥಿತಿ: {status_kn}. ಗಾಳಿ: {w_cond.get('wind_speed_knots')} ನಾಟ್ಸ್. ಅಲೆಗಳು: {w_cond.get('wave_height_m')} ಮೀಟರ್. ಶಿಫಾರಸು ಮಾಡಿದ ನಿರ್ಗಮನ ಸಮಯ: {window.get('recommended_window', 'ಬೆಳಿಗ್ಗೆ')}. ಮುಗಿಯಿತು."
+            text = (
+                f"=== ಓಷಿನೋವಾ ಸಾಗರ ಮಾಹಿತಿ ({status_kn}) ===\n"
+                f"• ಸುರಕ್ಷತಾ ಸ್ಥಿತಿ: {safety.overall_safety_status} (ಅಂಕ: {safety.safety_score}/100)\n"
+                f"• ಗುರಿ ಮೀನು: {species_name} | ದೋಣಿ: {vessel}\n"
+                f"• ಹವಾಮಾನ: ಗಾಳಿ {w_cond.get('wind_speed_knots')} ನಾಟ್ಸ್, ಅಲೆಗಳ ಎತ್ತರ {w_cond.get('wave_height_m')} ಮೀಟರ್.\n"
+                f"• ಅತ್ಯುತ್ತಮ ನಿರ್ಗಮನ ಸಮಯ: {window.get('recommended_window')}\n"
+                f"• ಮೀನುಗಾರಿಕಾ ಸಂಭಾವ್ಯ ವಲಯ (PFZ): {o_cond.get('pfz_rating')} ಸಾಧ್ಯತೆ (ಸ್ಕೋರ್: {o_cond.get('pfz_potential_score')}/100).\n"
+                f"• ಸುರಕ್ಷಿತ ದಿಕ್ಕು: {route.get('initial_bearing_deg')}° ({route.get('total_distance_nm')} NM ದೂರ).\n"
+                f"• ಸಮುದ್ರ ಗಡಿ: {g_cond.get('summary')}\n"
+                f"• ಶಿಫಾರಸು: {' '.join(safety.safety_recommendations)}"
+            )
+            return text, vhf_script_kn
 
         return self.generate_multilingual_advisory("en", species, vessel, safety, weather, ocean, geofence, tides, route)
 
